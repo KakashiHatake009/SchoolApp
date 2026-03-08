@@ -1,37 +1,84 @@
-# ============================================================
-# School Booking API — REST Client test file
-# Install VS Code extension: "REST Client" by Huachao Mao
-# Run requests by clicking "Send Request" above each ###
-# ============================================================
+# =============================================================================
+# School Booking API — Complete REST Client test file
+# Extension: "REST Client" by Huachao Mao (VS Code)
+# Click "Send Request" above any ### block to run it.
+#
+# WORKFLOW:
+#   1. Run a token request → copy access_token → paste into @token below
+#   2. Run requests top-to-bottom, copying IDs as you go
+# =============================================================================
 
-# ── STEP 0: Get a Keycloak token ─────────────────────────────
-# Choose a user and run this first. Copy the access_token value
-# and paste it into @token below.
 
-### Get token — school_admin_1
-POST http://localhost:8081/realms/school_001/protocol/openid-connect/token
-Content-Type: application/x-www-form-urlencoded
+# ─────────────────────────────────────────────────────────────────────────────
+# VARIABLES  (fill in as you go)
+# ─────────────────────────────────────────────────────────────────────────────
 
-grant_type=password&client_id=school-portal&username=school_admin_1&password=Admin1234!
+@host         = http://localhost:3000
+@kcUrl        = http://localhost:8081/realms/school_001/protocol/openid-connect/token
 
-### Get token — platform_admin
-POST http://localhost:8081/realms/school_001/protocol/openid-connect/token
+# Paste the access_token from a token request below:
+@token        = PASTE_ACCESS_TOKEN_HERE
+
+# Paste IDs returned by create requests:
+@schoolId     = PASTE_SCHOOL_ID_HERE
+@teacherId    = PASTE_TEACHER_ID_HERE
+@eventId      = PASTE_EVENT_ID_HERE
+@slotId       = PASTE_SLOT_ID_HERE
+@qrToken      = PASTE_QR_TOKEN_HERE
+
+# Parent OTP flow:
+@parentEmail  = parent@example.com
+@otpCode      = PASTE_OTP_CODE_HERE
+@parentToken  = PASTE_PARENT_TOKEN_HERE
+@cancelToken  = PASTE_CANCEL_TOKEN_HERE
+
+
+# =============================================================================
+# 0. KEYCLOAK — GET TOKENS
+# Run one of these, copy access_token → paste into @token above
+# =============================================================================
+
+### Token — platform_admin (full access)
+POST {{kcUrl}}
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=password&client_id=school-portal&username=platform_admin&password=PlatformAdmin1234!
 
-# ── Paste your access_token here ─────────────────────────────
-@token = PASTE_ACCESS_TOKEN_HERE
-@host = http://localhost:3000
+###
 
-# ── STEP 1: Health check ─────────────────────────────────────
+### Token — school_admin_1 (school-scoped admin)
+POST {{kcUrl}}
+Content-Type: application/x-www-form-urlencoded
 
-### Health
+grant_type=password&client_id=school-portal&username=school_admin_1&password=Admin1234!
+
+###
+
+### Token — teacher_1 (read-only)
+POST {{kcUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=school-portal&username=teacher_1&password=Teacher1234!
+
+###
+
+
+# =============================================================================
+# 1. HEALTH CHECK
+# =============================================================================
+
+### Health check
 GET {{host}}/health
 
-# ── STEP 2: Create a school (PLATFORM_ADMIN only) ────────────
+###
+
+
+# =============================================================================
+# 2. SCHOOLS  (PLATFORM_ADMIN only for write, SCHOOL_ADMIN can read)
+# =============================================================================
 
 ### Create school
+# → Copy id from response → paste into @schoolId above
 POST {{host}}/api/schools
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -42,16 +89,57 @@ Content-Type: application/json
   "contactEmail": "admin@riverside.edu"
 }
 
-# ── Copy school id from response → paste below ───────────────
-@schoolId = PASTE_SCHOOL_ID_HERE
+###
 
-### List schools
+### List all schools
 GET {{host}}/api/schools
 Authorization: Bearer {{token}}
 
-# ── STEP 3: Create a teacher ─────────────────────────────────
+###
 
-### Create teacher (also creates Keycloak user, returns tempPassword)
+### Get school by ID
+GET {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Update school (name, address, contactEmail, isActive)
+PATCH {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Riverside Primary School",
+  "address": "12 River Road, Springfield"
+}
+
+###
+
+### Deactivate school (set isActive = false)
+PATCH {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+###
+
+### Delete school
+# DELETE {{host}}/api/schools/{{schoolId}}
+# Authorization: Bearer {{token}}
+
+###
+
+
+# =============================================================================
+# 3. TEACHERS  (SCHOOL_ADMIN write, SCHOOL_ADMIN + TEACHER read)
+# =============================================================================
+
+### Create teacher
+# → Also creates a Keycloak user. Response includes tempPassword.
+# → Copy id from response → paste into @teacherId above
 POST {{host}}/api/teachers
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -63,23 +151,53 @@ Content-Type: application/json
   "schoolId": "{{schoolId}}"
 }
 
-# ── Copy teacher id from response → paste below ──────────────
-@teacherId = PASTE_TEACHER_ID_HERE
+###
 
-### List teachers
+### List all teachers (scoped to school for SCHOOL_ADMIN)
 GET {{host}}/api/teachers
 Authorization: Bearer {{token}}
 
-# ── STEP 4: Create an event ───────────────────────────────────
+###
 
-### Create event — slot booking (parent-teacher conferences)
+### Get teacher by ID
+GET {{host}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Update teacher (name, subject)
+PATCH {{host}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Jane A. Smith",
+  "subject": "Maths & Physics"
+}
+
+###
+
+### Delete teacher (also removes Keycloak user)
+# DELETE {{host}}/api/teachers/{{teacherId}}
+# Authorization: Bearer {{token}}
+
+###
+
+
+# =============================================================================
+# 4. EVENTS  (SCHOOL_ADMIN write, SCHOOL_ADMIN + TEACHER read)
+# =============================================================================
+
+### Create event — SLOT_BOOKING (parent-teacher conferences)
+# → Copy id from response → paste into @eventId above
+# → Copy qrToken from response → paste into @qrToken above
 POST {{host}}/api/events
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "title": "Parent-Teacher Conferences",
-  "description": "Spring term conferences",
+  "title": "Parent-Teacher Conferences — Spring 2026",
+  "description": "Spring term parent-teacher meetings",
   "eventType": "SLOT_BOOKING",
   "startDate": "2026-03-20T09:00:00.000Z",
   "endDate": "2026-03-20T16:00:00.000Z",
@@ -87,35 +205,63 @@ Content-Type: application/json
   "schoolId": "{{schoolId}}"
 }
 
-### Create event — RSVP (open day)
+###
+
+### Create event — RSVP_SIGNUP (open day)
 POST {{host}}/api/events
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "title": "Open Day",
+  "title": "Open Day 2026",
   "description": "Come see our school!",
   "eventType": "RSVP_SIGNUP",
   "startDate": "2026-04-01T10:00:00.000Z",
   "endDate": "2026-04-01T14:00:00.000Z",
-  "maxCapacity": 50,
+  "location": "School Grounds",
+  "maxCapacity": 100,
   "schoolId": "{{schoolId}}"
 }
 
-# ── Copy event id from response → paste below ────────────────
-@eventId = PASTE_EVENT_ID_HERE
+###
 
-### List events
+### List all events (scoped to school)
 GET {{host}}/api/events
 Authorization: Bearer {{token}}
 
-### Get event by id (includes slots)
+###
+
+### Get event by ID (includes slots)
 GET {{host}}/api/events/{{eventId}}
 Authorization: Bearer {{token}}
 
-# ── STEP 5: Create slots for the event ───────────────────────
+###
 
-### Create slots (bulk — array)
+### Update event
+PATCH {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Parent-Teacher Conferences — Spring 2026 (Updated)",
+  "location": "Room 14"
+}
+
+###
+
+### Delete event
+# DELETE {{host}}/api/events/{{eventId}}
+# Authorization: Bearer {{token}}
+
+###
+
+
+# =============================================================================
+# 5. SLOTS  (SCHOOL_ADMIN write, SCHOOL_ADMIN + TEACHER read)
+# =============================================================================
+
+### Create slots — bulk array (most common)
+# → Copy a slot id from response → paste into @slotId above
 POST {{host}}/api/events/{{eventId}}/slots
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -138,87 +284,221 @@ Content-Type: application/json
     "endTime":   "2026-03-20T09:45:00.000Z",
     "teacherId": "{{teacherId}}",
     "maxBookings": 1
+  },
+  {
+    "startTime": "2026-03-20T09:45:00.000Z",
+    "endTime":   "2026-03-20T10:00:00.000Z",
+    "teacherId": "{{teacherId}}",
+    "maxBookings": 1
   }
 ]
 
-# ── Copy a slot id from response → paste below ───────────────
-@slotId = PASTE_SLOT_ID_HERE
+###
 
-### List slots for event
+### Create slot — single object
+POST {{host}}/api/events/{{eventId}}/slots
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "startTime": "2026-03-20T10:00:00.000Z",
+  "endTime":   "2026-03-20T10:15:00.000Z",
+  "teacherId": "{{teacherId}}",
+  "maxBookings": 2
+}
+
+###
+
+### List slots for an event
 GET {{host}}/api/events/{{eventId}}/slots
 Authorization: Bearer {{token}}
 
-# ── STEP 6: Get QR code ───────────────────────────────────────
+###
 
-### Get QR code (opens/saves PNG in REST Client)
+### Update slot (change time or maxBookings)
+PATCH {{host}}/api/slots/{{slotId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maxBookings": 2,
+  "startTime": "2026-03-20T09:00:00.000Z",
+  "endTime":   "2026-03-20T09:20:00.000Z"
+}
+
+###
+
+### Delete slot
+# DELETE {{host}}/api/slots/{{slotId}}
+# Authorization: Bearer {{token}}
+
+###
+
+
+# =============================================================================
+# 6. QR CODE  (SCHOOL_ADMIN only)
+# The response is a PNG image — REST Client will display it inline.
+# =============================================================================
+
+### Get QR code PNG for event
+# → Also note the qrToken printed in the terminal/response headers if needed
 GET {{host}}/api/events/{{eventId}}/qr
 Authorization: Bearer {{token}}
 
-# ── STEP 7: Parent OTP flow ───────────────────────────────────
-# Parents have NO Keycloak accounts — they use email OTP
+###
 
-### 7a. Send OTP to parent email
+
+# =============================================================================
+# 7. PUBLIC ENDPOINTS — Event info via QR token (no auth)
+# These are the endpoints the parent booking page calls after scanning QR.
+# @qrToken comes from the event create response (field: qrToken)
+# =============================================================================
+
+### Get public event info by QR token
+GET {{host}}/api/public/events/by-qr/{{qrToken}}
+
+###
+
+### Get public slots for event (includes available: true/false)
+GET {{host}}/api/public/events/by-qr/{{qrToken}}/slots
+
+###
+
+
+# =============================================================================
+# 8. OTP — PARENT AUTHENTICATION (no auth, public)
+# Parents have no Keycloak account. They authenticate via email OTP.
+# Check Mailhog at http://localhost:8025 for the OTP email.
+# =============================================================================
+
+### 8a. Send OTP to parent email
 POST {{host}}/api/otp/send
 Content-Type: application/json
 
 {
-  "email": "parent@example.com",
+  "email": "{{parentEmail}}",
   "eventId": "{{eventId}}"
 }
 
-# Check Mailhog at: http://localhost:8025
-# Copy the 6-digit code from the email
+###
 
-@otpCode = PASTE_OTP_CODE_HERE
-
-### 7b. Verify OTP — returns a parent JWT
+### 8b. Verify OTP → returns parentToken (short-lived JWT)
+# → Copy token from response → paste into @parentToken above
 POST {{host}}/api/otp/verify
 Content-Type: application/json
 
 {
-  "email": "parent@example.com",
+  "email": "{{parentEmail}}",
   "eventId": "{{eventId}}",
   "code": "{{otpCode}}"
 }
 
-# ── Paste parent token from 7b response ──────────────────────
-@parentToken = PASTE_PARENT_TOKEN_HERE
+###
 
-# ── STEP 8: Book a slot ───────────────────────────────────────
 
-### Book a slot (SLOT_BOOKING event)
+# =============================================================================
+# 9. BOOKINGS — CREATE (parent token required)
+# =============================================================================
+
+### Book a slot — SLOT_BOOKING event
+# → Copy cancelToken from response → paste into @cancelToken above
 POST {{host}}/api/bookings
 Authorization: Bearer {{parentToken}}
 Content-Type: application/json
 
 {
   "slotId": "{{slotId}}",
-  "childName": "Alex Parent"
+  "childName": "Alex Johnson"
 }
 
-# ── Copy cancelToken from booking response ───────────────────
-@cancelToken = PASTE_CANCEL_TOKEN_HERE
+###
 
-### Book RSVP (no slotId needed for RSVP_SIGNUP events)
-# POST {{host}}/api/bookings
-# Authorization: Bearer {{parentToken}}
-# Content-Type: application/json
-# { "childName": "Alex Parent" }
+### RSVP signup — RSVP_SIGNUP event (no slotId needed)
+POST {{host}}/api/bookings
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
 
-# ── STEP 9: Admin — view bookings ────────────────────────────
+{
+  "childName": "Alex Johnson"
+}
 
-### List all bookings for school
+###
+
+
+# =============================================================================
+# 10. BOOKINGS — ADMIN VIEW (SCHOOL_ADMIN + TEACHER read)
+# =============================================================================
+
+### List all bookings (scoped to school's events)
 GET {{host}}/api/bookings
 Authorization: Bearer {{token}}
 
-### List bookings for a specific event
+###
+
+### Filter bookings by event
 GET {{host}}/api/bookings?eventId={{eventId}}
 Authorization: Bearer {{token}}
 
-# ── STEP 10: Cancel a booking ─────────────────────────────────
+###
 
-### View booking by cancel token (public)
+
+# =============================================================================
+# 11. BOOKINGS — CANCEL (public, no auth — link sent in confirmation email)
+# =============================================================================
+
+### View booking details by cancel token
 GET {{host}}/api/bookings/{{cancelToken}}
 
-### Cancel booking (public — sent in the confirmation email link)
+###
+
+### Cancel booking
 DELETE {{host}}/api/bookings/{{cancelToken}}
+
+###
+
+
+# =============================================================================
+# QUICK REFERENCE — All endpoints
+# =============================================================================
+#
+#  Method  Path                                      Auth
+#  ──────  ────────────────────────────────────────  ──────────────────────
+#  GET     /health                                   none
+#
+#  POST    /api/schools                              PLATFORM_ADMIN
+#  GET     /api/schools                              PLATFORM_ADMIN / SCHOOL_ADMIN
+#  GET     /api/schools/:id                          PLATFORM_ADMIN / SCHOOL_ADMIN
+#  PATCH   /api/schools/:id                          PLATFORM_ADMIN
+#  DELETE  /api/schools/:id                          PLATFORM_ADMIN
+#
+#  POST    /api/teachers                             SCHOOL_ADMIN
+#  GET     /api/teachers                             SCHOOL_ADMIN / TEACHER
+#  GET     /api/teachers/:id                         SCHOOL_ADMIN / TEACHER
+#  PATCH   /api/teachers/:id                         SCHOOL_ADMIN
+#  DELETE  /api/teachers/:id                         SCHOOL_ADMIN
+#
+#  POST    /api/events                               SCHOOL_ADMIN
+#  GET     /api/events                               SCHOOL_ADMIN / TEACHER
+#  GET     /api/events/:id                           SCHOOL_ADMIN / TEACHER
+#  PATCH   /api/events/:id                           SCHOOL_ADMIN
+#  DELETE  /api/events/:id                           SCHOOL_ADMIN
+#  GET     /api/events/:id/qr                        SCHOOL_ADMIN
+#
+#  POST    /api/events/:eventId/slots                SCHOOL_ADMIN
+#  GET     /api/events/:eventId/slots                SCHOOL_ADMIN / TEACHER
+#  PATCH   /api/slots/:id                            SCHOOL_ADMIN
+#  DELETE  /api/slots/:id                            SCHOOL_ADMIN
+#
+#  GET     /api/public/events/by-qr/:qrToken         none (public)
+#  GET     /api/public/events/by-qr/:qrToken/slots   none (public)
+#
+#  POST    /api/otp/send                             none (public)
+#  POST    /api/otp/verify                           none (public)
+#
+#  POST    /api/bookings                             parent JWT
+#  GET     /api/bookings                             SCHOOL_ADMIN / TEACHER
+#  GET     /api/bookings?eventId=...                 SCHOOL_ADMIN / TEACHER
+#  GET     /api/bookings/:cancelToken                none (public)
+#  DELETE  /api/bookings/:cancelToken                none (public)
+#
+# =============================================================================
