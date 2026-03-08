@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# Export school_001 realm from running Keycloak to infra/keycloak/school_001-realm.json
+# Export school_001 realm from running Keycloak to devops/keycloak/school_001-realm.json
 #
 # Run after setup-keycloak.sh or after manual UI changes you want to persist.
 # This file is committed to git and used by Keycloak --import-realm on startup.
 #
-# Usage:  bash infra/keycloak/export-realm.sh
+# Usage:  bash devops/keycloak/export-realm.sh
 # ═══════════════════════════════════════════════════════════════════════════════
 set -e
 
@@ -58,5 +58,5 @@ print(f"\033[0;36m→\033[0m Roles:   {[r['name'] for r in realm_json.get('roles
 PYEOF
 
 echo ""
-echo "Commit with: git add infra/keycloak/school_001-realm.json && git commit -m 'chore: update keycloak realm export'"
+echo "Commit with: git add devops/keycloak/school_001-realm.json && git commit -m 'chore: update keycloak realm export'"
 echo ""

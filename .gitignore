@@ -11,8 +11,8 @@ dist/
 build/
 
 # Prisma generated client
-apps/api/generated/
-apps/api/node_modules/.prisma/
+apps/backend/generated/
+apps/backend/node_modules/.prisma/
 
 # logs
 *.log

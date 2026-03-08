@@ -3,7 +3,7 @@
 # Keycloak setup script for School Booking Platform
 #
 # Run AFTER docker-compose is up:
-#   bash infra/keycloak/setup-keycloak.sh
+#   bash devops/keycloak/setup-keycloak.sh
 #
 # Idempotent — safe to run multiple times. Configures school_001 realm with:
 #   - User Profile:  school_id, teacher_id attributes (unmanaged attrs enabled)
@@ -313,6 +313,6 @@ print(f"""
     {CYAN}school_admin_1{NC} / Admin1234!   → SCHOOL_ADMIN, school_id=school-001-dev
     {CYAN}teacher_1{NC}      / Teacher1234! → TEACHER, school_id=school-001-dev, teacher_id=teacher-001-dev
 
-  Next: bash infra/keycloak/export-realm.sh  (save realm to JSON)
+  Next: bash devops/keycloak/export-realm.sh  (save realm to JSON)
 """)
 PYEOF
