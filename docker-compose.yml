@@ -1,0 +1,74 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: schoolapp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: schoolapp
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: schoolapp_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schoolapp -d schoolapp_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - schoolapp_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: schoolapp_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - schoolapp_net
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: schoolapp_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - schoolapp_net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: schoolapp_keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_dev
+      KC_DB_USERNAME: schoolapp
+      KC_DB_PASSWORD: localpassword
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: WARN
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./infra/keycloak:/opt/keycloak/data/import
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - schoolapp_net
+
+volumes:
+  postgres_data:
+
+networks:
+  schoolapp_net:
+    driver: bridge

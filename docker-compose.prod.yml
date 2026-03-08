@@ -1,0 +1,92 @@
+name: school-booking-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: schoolapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: schoolapp_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schoolapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    restart: unless-stopped
+    command: start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_prod
+      KC_DB_USERNAME: schoolapp
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./infra/keycloak/school_001-realm.json:/opt/keycloak/data/import/school_001-realm.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://schoolapp:${POSTGRES_PASSWORD}@postgres:5432/schoolapp_prod
+      REDIS_URL: redis://redis:6379
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KC_REALM}
+      KEYCLOAK_CLIENT_ID: ${KC_API_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KC_API_CLIENT_SECRET}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      OTP_JWT_SECRET: ${OTP_JWT_SECRET}
+      OTP_JWT_EXPIRES_IN: 15m
+      APP_BASE_URL: ${APP_BASE_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      EMAIL_FROM: ${EMAIL_FROM}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_KC_URL: ${APP_BASE_URL}/auth
+        VITE_KC_REALM: ${KC_REALM}
+        VITE_KC_CLIENT_ID: ${KC_WEB_CLIENT_ID}
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api
+      - web
+
+volumes:
+  postgres_data:
