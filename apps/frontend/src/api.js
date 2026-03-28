@@ -1,4 +1,4 @@
-import keycloak from './keycloak.js';
+import { getToken } from './auth.js';
 
 const BASE = '/api';
 
@@ -22,25 +22,20 @@ async function request(path, { method = 'GET', body, token } = {}) {
 }
 
 async function blobRequest(path) {
-    await keycloak.updateToken(30);
     const res = await fetch(BASE + path, {
-        headers: { Authorization: `Bearer ${keycloak.token}` },
+        headers: { Authorization: `Bearer ${getToken()}` },
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.blob();
 }
 
-// ── Admin API (auto-refreshes Keycloak token) ────────────────────────────────
+// ── Admin API (uses stored JWT) ──────────────────────────────────────────────
 
-async function adminRequest(path, opts = {}) {
-    await keycloak.updateToken(30);
-    return request(path, { ...opts, token: keycloak.token });
+function adminRequest(path, opts = {}) {
+    return request(path, { ...opts, token: getToken() });
 }
 
-// Helper — readable in any component
-export function isPlatformAdmin() {
-    return keycloak.tokenParsed?.realm_access?.roles?.includes('PLATFORM_ADMIN') ?? false;
-}
+// ── Admin API ────────────────────────────────────────────────────────────────
 
 export const adminApi = {
     // Schools

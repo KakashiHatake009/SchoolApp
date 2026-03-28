@@ -1,10 +1,16 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import keycloak from '../keycloak.js';
-import { isPlatformAdmin } from '../api.js';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { getUser, clearToken, isPlatformAdmin } from '../auth.js';
 
 export default function AdminLayout() {
-    const name = keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || 'Admin';
+    const navigate = useNavigate();
+    const user = getUser();
+    const name = user?.name || user?.email || 'Admin';
     const isAdmin = isPlatformAdmin();
+
+    function handleSignOut() {
+        clearToken();
+        navigate('/login', { replace: true });
+    }
 
     return (
         <div className="admin-shell">
@@ -33,7 +39,7 @@ export default function AdminLayout() {
                     <button
                         className="btn btn-secondary btn-sm"
                         style={{ width: '100%', justifyContent: 'center' }}
-                        onClick={() => keycloak.logout()}
+                        onClick={handleSignOut}
                     >
                         Sign out
                     </button>

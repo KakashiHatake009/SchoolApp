@@ -1,4 +1,4 @@
-# School Booking Platform
+# SchoolBook — Backend API
 
 Multi-tenant SaaS platform for schools to manage parent-teacher appointment booking and event sign-ups. Parents scan a QR code, verify via OTP email, and book a time slot — no account required.
 
@@ -8,151 +8,113 @@ Multi-tenant SaaS platform for schools to manage parent-teacher appointment book
 
 | Layer | Technology |
 |---|---|
-| Backend | Node.js + Express, Prisma ORM |
-| Frontend | React 18 + Vite |
-| Database | PostgreSQL 16 |
+| Backend | Node.js 18+ + Express.js (ESM modules) |
+| Frontend | React 19 + TypeScript + Vite (see `booking-platform` repo) |
+| Database | PostgreSQL 15/16 |
+| ORM | Prisma 5 |
 | Cache / OTP | Redis 7 |
-| Auth | Keycloak 24 (admins) + OTP JWT (parents) |
-| Email | Nodemailer → Mailhog (dev) |
-| Reverse proxy (prod) | nginx |
+| Auth | Simple JWT (admins) + OTP JWT (parents) |
+| API Docs | Swagger UI |
 
 ---
 
 ## Project Structure
 
 ```
-school-booking/
+SchoolApp/
 ├── apps/
-│   ├── backend/          # Express API (port 3000)
+│   ├── backend/              # Express REST API (port 3000)
 │   │   ├── src/
-│   │   │   ├── controllers/
-│   │   │   ├── routes/
-│   │   │   ├── services/
-│   │   │   ├── middleware/
-│   │   │   ├── config/
-│   │   │   └── lib/
-│   │   └── prisma/
-│   └── frontend/         # React + Vite (port 3001)
-│       └── src/
-│           ├── pages/
-│           │   ├── admin/    # Admin portal
-│           │   └── parent/   # Parent booking flow
-│           └── components/
-├── devops/
-│   ├── keycloak/         # Realm config + setup scripts
-│   ├── nginx/            # Reverse proxy config (prod)
-│   └── postgres/         # DB init SQL
-├── docker-compose.yml        # Dev infra (postgres, redis, keycloak, mailhog)
-├── docker-compose.prod.yml   # Production (all services containerised)
-└── package.json              # npm workspaces + root scripts
+│   │   │   ├── controllers/  # Request handlers
+│   │   │   ├── routes/       # Express routers
+│   │   │   └── middleware/   # JWT auth + role guards
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma # Database models
+│   │   │   └── seed.js       # Seed script (creates admin user)
+│   │   └── .env              # Environment variables (not committed)
+│   └── frontend/             # Legacy JSX frontend (not actively used)
+└── package.json              # npm workspaces
 ```
+
+> The actively maintained frontend is in the separate `booking-platform` repository (React + TypeScript).
 
 ---
 
 ## Prerequisites
 
-- **Node.js** v20+
-- **npm** v10+
-- **Docker Desktop** (with WSL integration enabled on Windows)
+- **Node.js** v18+
+- **PostgreSQL** 15 or 16 — running on port **2022** (non-standard, configured in `postgresql.conf`)
+- **Redis** 7 (for OTP storage)
 
 ---
 
 ## Local Development Setup
 
-### 1. Clone and install dependencies
+### 1. Install dependencies
 
 ```bash
-git clone <repo-url> school-booking
-cd school-booking
+cd SchoolApp
 npm install
 ```
 
-### 2. Start infrastructure
+### 2. Configure environment variables
 
-```bash
-npm run infra:up
+Create `apps/backend/.env`:
+
+```env
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:2022/schoolbook"
+JWT_SECRET="dev-jwt-secret-change-in-production"
+OTP_JWT_SECRET="dev-otp-secret-change-in-production"
+PORT=3000
 ```
 
-This starts PostgreSQL, Redis, Keycloak, and Mailhog via Docker Compose.
+> PostgreSQL runs on port **2022** (not the default 5432). Check your `postgresql.conf` if you're unsure.
 
-Wait ~30 seconds for Keycloak to finish importing the realm, then verify:
-
-```bash
-curl http://localhost:3000/health   # API health (after step 4)
-curl http://localhost:8081          # Keycloak admin UI
-```
-
-### 3. Configure environment variables
+### 3. Run database migrations
 
 ```bash
-# Backend
-cp apps/backend/.env.example apps/backend/.env
-
-# Frontend
-cp apps/frontend/.env.example apps/frontend/.env
+cd apps/backend
+npx prisma migrate dev
 ```
 
-Get the `KEYCLOAK_CLIENT_SECRET` for the `node-api` client:
+### 4. Seed the database
 
-1. Open [http://localhost:8081](http://localhost:8081) → login with `admin / admin`
-2. Select realm **school_001**
-3. Go to **Clients** → `node-api` → **Credentials** tab → copy the secret
-4. Paste it into `apps/backend/.env` as `KEYCLOAK_CLIENT_SECRET`
-
-Set `OTP_JWT_SECRET` to any random string (min 32 chars):
+Creates the default platform admin account:
 
 ```bash
-# Linux / macOS
-openssl rand -hex 32
+npm run seed
 ```
 
-### 4. Run database migrations
-
-```bash
-npm run db:migrate
-```
-
-### 5. Start the apps
+### 5. Start the backend
 
 ```bash
 npm run dev
 ```
 
-This starts both backend (`:3000`) and frontend (`:3001`) with colour-coded output.
+API runs on **http://localhost:3000**
 
-Or start them individually:
+Swagger docs available at **http://localhost:3000/api-docs**
 
-```bash
-npm run dev:backend    # API only
-npm run dev:frontend   # React app only
-```
+---
+
+## Default Login Credentials
+
+| Role | Email | Password |
+|---|---|---|
+| Platform Admin | admin@schoolbook.de | admin123 |
+
+> Change this password after first login in production.
 
 ---
 
 ## Services & Ports
 
-| Service | URL | Purpose |
+| Service | URL | Notes |
 |---|---|---|
-| Frontend | http://localhost:3001 | React admin portal + parent booking |
 | Backend API | http://localhost:3000 | Express REST API |
-| Keycloak | http://localhost:8081 | Auth server admin UI |
-| Mailhog | http://localhost:8025 | View emails sent in dev |
-| PostgreSQL | localhost:5432 | Database |
+| API Docs | http://localhost:3000/api-docs | Swagger UI |
+| PostgreSQL | localhost:2022 | Non-standard port |
 | Redis | localhost:6379 | OTP cache |
-
----
-
-## Test Accounts
-
-These accounts exist in the `school_001` Keycloak realm after setup:
-
-| Role | Username | Password |
-|---|---|---|
-| Platform Admin | `platform_admin` | `PlatformAdmin1234!` |
-| School Admin | `school_admin_1` | `Admin1234!` |
-| Teacher | `teacher_1` | `Teacher1234!` |
-
-Log in at [http://localhost:3001/admin/events](http://localhost:3001/admin/events).
 
 ---
 
@@ -160,20 +122,160 @@ Log in at [http://localhost:3001/admin/events](http://localhost:3001/admin/event
 
 | Role | What they can do |
 |---|---|
-| `PLATFORM_ADMIN` | Full access — manage all schools, events, teachers, bookings |
-| `SCHOOL_ADMIN` | Manage their school's events, slots, teachers, bookings |
-| `TEACHER` | Read-only access to their school's events and slots |
+| `platform_admin` | Full access — manage all schools, events, teachers, bookings |
+| `school_admin` | Manage their school's events, slots, teachers, bookings |
+| `teacher` | View and toggle their own appointment slots |
 | Parent | No account — authenticates via OTP email, books slots via QR code |
+
+Role names are **lowercase** throughout the codebase, JWT payload, and database.
 
 ---
 
-## Parent Booking Flow
+## Authentication
 
-1. School admin generates a QR code for an event
-2. Parent scans QR → lands on `/book/:qrToken`
-3. Enters email → receives OTP in inbox (check Mailhog in dev)
-4. Verifies OTP → picks an available time slot
-5. Receives booking confirmation email with a cancel link
+### Admin / Teacher Login
+
+```
+POST /api/auth/login
+Body: { "email": "...", "password": "..." }
+Response: { "user": {...}, "token": "JWT" }
+```
+
+Include the token in all subsequent requests:
+```
+Authorization: Bearer <token>
+```
+
+### Parent OTP Flow
+
+Parents have no account. They authenticate per-event:
+
+1. `POST /api/otp/send` — sends 6-digit code to parent email
+2. `POST /api/otp/verify` — verifies code, returns short-lived `parentToken`
+3. `POST /api/bookings` — uses `parentToken` as Bearer token
+
+### JWT Payload
+
+```json
+{
+  "id": "user-id",
+  "email": "user@example.com",
+  "name": "User Name",
+  "role": "platform_admin | school_admin | teacher",
+  "schoolId": "school-id-or-null"
+}
+```
+
+---
+
+## API Reference
+
+Full interactive docs: **http://localhost:3000/api-docs**
+
+### Auth
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/login` | None | Login, returns JWT |
+
+### Schools
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/schools` | platform_admin | List all schools |
+| POST | `/api/schools` | platform_admin | Create school |
+| GET | `/api/schools/:id` | admin | Get school by ID |
+| PATCH | `/api/schools/:id` | platform_admin | Update school |
+| DELETE | `/api/schools/:id` | platform_admin | Delete school |
+
+### Events
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/events` | admin | List events (scoped by school for school_admin) |
+| POST | `/api/events` | school_admin | Create event |
+| GET | `/api/events/:id` | admin | Get event by ID |
+| PATCH | `/api/events/:id` | school_admin | Update event |
+| DELETE | `/api/events/:id` | school_admin | Delete event |
+| POST | `/api/events/:id/duplicate` | school_admin | Duplicate event |
+| POST | `/api/events/:id/publish` | school_admin | Publish event |
+| POST | `/api/events/:id/unpublish` | school_admin | Unpublish event |
+
+### Teachers
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/teachers` | admin | List teachers (`?eventId=` or `?schoolId=`) |
+| POST | `/api/teachers` | school_admin | Create teacher |
+| GET | `/api/teachers/:id` | admin | Get teacher by ID |
+| PATCH | `/api/teachers/:id` | school_admin | Update teacher |
+| DELETE | `/api/teachers/:id` | school_admin | Delete teacher |
+| POST | `/api/teachers/import` | school_admin | Bulk import from Excel |
+
+### Appointment Slots
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/slots` | - | Get slots (`?teacherId=` or `?eventId=`) |
+| PATCH | `/api/slots/:id` | teacher | Toggle slot active/inactive |
+
+### Bookings
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/bookings` | school_admin | List bookings (`?eventId=`) |
+| POST | `/api/bookings` | parent token | Create booking |
+| GET | `/api/bookings/:cancelToken` | None | Get booking by cancel token |
+| DELETE | `/api/bookings/:cancelToken` | None | Cancel booking |
+
+### OTP
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/otp/send` | None | Send OTP to parent email |
+| POST | `/api/otp/verify` | None | Verify OTP, get parent token |
+
+### QR Code
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/qr/:eventId` | school_admin | Generate QR code for event |
+
+---
+
+## Database Schema
+
+Key models (`prisma/schema.prisma`):
+
+**User** — system accounts
+```
+id, email, password (bcrypt), role, name, schoolId?, teacherId?
+```
+
+**School**
+```
+id, name, address, contactEmail, isActive, createdAt
+```
+
+**SchoolEvent**
+```
+id, schoolId, name, description, type (slot_booking | rsvp_signup),
+date, startTime, endTime, slotDuration, status (draft | published),
+qrCode, createdAt, duplicatedFrom?
+```
+
+**Teacher** — supports two teachers per row (Elternsprechtag format)
+```
+id, eventId, schoolId, klasse, roomNo,
+salutation, titel, firstName, surname, email,
+salutation2, titel2, firstName2, surname2, email2,
+bookingStatus, isActive, createdAt
+```
+
+**AppointmentSlot**
+```
+id, eventId, teacherId, startTime, endTime,
+status (available | booked | disabled), createdAt
+```
+
+**Booking**
+```
+id, eventId, teacherId, slotId, schoolId,
+parentFirstName, parentLastName, parentEmail, childName, childClass,
+status (CONFIRMED | CANCELLED), cancelToken, bookedAt
+```
 
 ---
 
@@ -181,65 +283,39 @@ Log in at [http://localhost:3001/admin/events](http://localhost:3001/admin/event
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start backend + frontend together |
-| `npm run dev:backend` | Start API only |
-| `npm run dev:frontend` | Start React app only |
-| `npm run infra:up` | Start Docker services (postgres, redis, keycloak, mailhog) |
-| `npm run infra:down` | Stop Docker services |
-| `npm run db:migrate` | Apply Prisma migrations |
-| `npm run db:studio` | Open Prisma Studio (visual DB browser) |
-| `npm run build` | Build frontend for production |
-
----
-
-## Keycloak Setup Scripts
-
-If Keycloak loses its realm config (e.g. after `docker volume rm`), re-run the setup:
-
-```bash
-bash devops/keycloak/setup-keycloak.sh
-```
-
-To export the current realm state to JSON (commit this after manual Keycloak changes):
-
-```bash
-bash devops/keycloak/export-realm.sh
-```
+| `npm run dev` | Start backend with nodemon |
+| `npm run seed` | Seed database with admin user |
+| `npx prisma migrate dev` | Apply and generate new migration |
+| `npx prisma migrate deploy` | Apply migrations in production |
+| `npx prisma studio` | Open visual database browser |
+| `npx prisma generate` | Regenerate Prisma client |
 
 ---
 
 ## Production Deployment
 
-Copy and fill in the production env file:
+### Recommended (Free Tier, EU/GDPR Compliant)
 
-```bash
-cp .env.prod.example .env.prod
-# edit .env.prod with real secrets, domain, SMTP, etc.
-```
+| Service | Provider | Region |
+|---|---|---|
+| Backend (Express) | [Render](https://render.com) | Frankfurt |
+| PostgreSQL | [Neon](https://neon.tech) | Frankfurt |
+| Redis | [Upstash](https://upstash.com) | Frankfurt |
 
-Build and start all services:
+> **GDPR Note**: This app handles school and child data. Use EU (Frankfurt) region for all services to comply with German DSGVO requirements.
 
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
+### Render Deployment Steps
 
-Run migrations inside the running container:
+1. Push code to GitHub
+2. Create a **Web Service** on Render pointing to `apps/backend`
+3. Build command: `npm install && npx prisma generate && npx prisma migrate deploy`
+4. Start command: `node src/app.js`
+5. Add environment variables: `DATABASE_URL`, `JWT_SECRET`, `OTP_JWT_SECRET`, `PORT`
 
-```bash
-docker compose -f docker-compose.prod.yml exec api npx prisma migrate deploy
-```
+### Before Going Live
 
-The nginx reverse proxy exposes port `80`:
-- `/` → frontend (React static files)
-- `/api/` → backend (Express API)
-
----
-
-## Data Persistence
-
-- **PostgreSQL data** is stored in the `postgres_data` Docker volume — survives `docker compose down`
-- **Never run `docker compose down -v`** without first exporting the Keycloak realm:
-  ```bash
-  bash devops/keycloak/export-realm.sh
-  git add devops/keycloak/school_001-realm.json && git commit -m "chore: update keycloak realm"
-  ```
+- [ ] Change `JWT_SECRET` and `OTP_JWT_SECRET` to strong random values (`openssl rand -hex 32`)
+- [ ] Set up real SMTP for email (Mailtrap for staging, production SMTP for live)
+- [ ] Rotate the default `admin@schoolbook.de` password
+- [ ] Review CORS allowed origins in `src/app.js`
+- [ ] Enable HTTPS (automatic on Render)

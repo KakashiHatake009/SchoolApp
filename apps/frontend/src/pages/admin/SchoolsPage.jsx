@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { adminApi, isPlatformAdmin } from '../../api.js';
+import { adminApi } from '../../api.js';
+import { isPlatformAdmin } from '../../auth.js';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../../components/Spinner.jsx';
 

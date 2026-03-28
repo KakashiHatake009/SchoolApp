@@ -1,8 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import keycloak from './keycloak.js';
-import Spinner from './components/Spinner.jsx';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { isAuthenticated } from './auth.js';
 import AdminLayout from './components/AdminLayout.jsx';
 
+import LoginPage from './pages/admin/LoginPage.jsx';
 import BookEmail from './pages/parent/BookEmail.jsx';
 import BookVerify from './pages/parent/BookVerify.jsx';
 import BookSlots from './pages/parent/BookSlots.jsx';
@@ -15,11 +15,11 @@ import TeachersPage from './pages/admin/TeachersPage.jsx';
 import BookingsPage from './pages/admin/BookingsPage.jsx';
 import SchoolsPage from './pages/admin/SchoolsPage.jsx';
 
-// Wraps admin routes — triggers Keycloak login if not authenticated
+// Wraps admin routes — redirects to /login if not authenticated
 function ProtectedRoute() {
-    if (!keycloak.authenticated) {
-        keycloak.login();
-        return <Spinner />;
+    const location = useLocation();
+    if (!isAuthenticated()) {
+        return <Navigate to="/login" state={{ from: location.pathname }} replace />;
     }
     return <Outlet />;
 }
@@ -31,6 +31,9 @@ export default function App() {
                 {/* Root → admin */}
                 <Route path="/" element={<Navigate to="/admin/events" replace />} />
 
+                {/* Login */}
+                <Route path="/login" element={<LoginPage />} />
+
                 {/* Parent booking flow — public, no auth */}
                 <Route path="/book/:qrToken" element={<BookEmail />} />
                 <Route path="/book/:qrToken/verify" element={<BookVerify />} />
@@ -40,7 +43,7 @@ export default function App() {
                 {/* Cancel — public */}
                 <Route path="/cancel/:cancelToken" element={<CancelPage />} />
 
-                {/* Admin portal — requires Keycloak */}
+                {/* Admin portal — requires JWT */}
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AdminLayout />}>
                         <Route path="/admin/schools" element={<SchoolsPage />} />
