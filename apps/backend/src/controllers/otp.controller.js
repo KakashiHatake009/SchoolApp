@@ -4,25 +4,24 @@ import { generateOtp, verifyOtp } from '../services/otp.service.js';
 import { sendOtpEmail } from '../services/email.service.js';
 
 // POST /api/otp/send
-// Body: { email, eventId }
+// Body: { email, eventId } OR { email, qrToken }
 export const sendOtp = async (req, res) => {
     try {
-        const { email, eventId } = req.body;
+        const { email, eventId, qrToken } = req.body;
 
-        if (!email || !eventId) {
-            return res.status(400).json({ error: 'email and eventId are required' });
+        if (!email || (!eventId && !qrToken)) {
+            return res.status(400).json({ error: 'email and either eventId or qrToken are required' });
         }
 
-        const event = await prisma.event.findUnique({
-            where: { id: eventId, isActive: true },
-        });
+        const where = eventId ? { id: eventId, isActive: true } : { qrToken, isActive: true };
+        const event = await prisma.event.findUnique({ where });
 
         if (!event) return res.status(404).json({ error: 'Event not found' });
 
-        const code = await generateOtp(email, eventId);
-        await sendOtpEmail(email, code, event.title);
+        const code = await generateOtp(email, event.id);
+        await sendOtpEmail(email, code, event.name);
 
-        res.json({ message: 'OTP sent' });
+        res.json({ message: 'OTP sent', eventId: event.id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -30,7 +29,6 @@ export const sendOtp = async (req, res) => {
 
 // POST /api/otp/verify
 // Body: { email, eventId, code }
-// Returns a short-lived JWT used as the parent's booking token
 export const verifyOtpHandler = async (req, res) => {
     try {
         const { email, eventId, code } = req.body;
@@ -40,10 +38,7 @@ export const verifyOtpHandler = async (req, res) => {
         }
 
         const result = await verifyOtp(email, eventId, code);
-
-        if (!result.valid) {
-            return res.status(401).json({ error: result.reason });
-        }
+        if (!result.valid) return res.status(401).json({ error: result.reason });
 
         const token = jwt.sign(
             { type: 'parent_otp', email, eventId },

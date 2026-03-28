@@ -16,7 +16,7 @@ export const getEventQr = async (req, res) => {
             return res.status(404).json({ error: 'Event not found' });
         }
 
-        if (!req.user.isPlatformAdmin && event.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && event.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 

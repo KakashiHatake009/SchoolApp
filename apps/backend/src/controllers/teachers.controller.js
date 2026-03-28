@@ -1,15 +1,25 @@
-import { randomUUID } from 'crypto';
 import prisma from '../config/prisma.js';
-import { createTeacherUser, deleteKeycloakUser } from '../lib/keycloak-admin.js';
 
-// GET /api/teachers
+// GET /api/teachers?eventId=&schoolId=
 export const getTeachers = async (req, res) => {
     try {
-        const where = req.user.isPlatformAdmin
-            ? {}
-            : { schoolId: req.user.schoolId, isActive: true };
+        const { eventId, schoolId } = req.query;
 
-        const teachers = await prisma.teacher.findMany({ where, orderBy: { name: 'asc' } });
+        const where = { isActive: true };
+
+        if (eventId) {
+            where.eventId = eventId;
+        } else if (req.user.role === 'platform_admin') {
+            if (schoolId) where.schoolId = schoolId;
+        } else {
+            where.schoolId = req.user.schoolId;
+        }
+
+        const teachers = await prisma.teacher.findMany({
+            where,
+            orderBy: { surname: 'asc' },
+        });
+
         res.json(teachers);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -22,7 +32,7 @@ export const getTeacherById = async (req, res) => {
         const teacher = await prisma.teacher.findUnique({ where: { id: req.params.id } });
         if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
-        if (!req.user.isPlatformAdmin && teacher.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && teacher.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
@@ -33,54 +43,32 @@ export const getTeacherById = async (req, res) => {
 };
 
 // POST /api/teachers
-// Creates DB record + Keycloak user atomically (rollback Keycloak on DB failure)
 export const createTeacher = async (req, res) => {
     try {
-        const { name, email, subject } = req.body;
-        const schoolId = req.user.isPlatformAdmin ? req.body.schoolId : req.user.schoolId;
+        const {
+            salutation, titel, firstName, surname, email, roomNo, klasse,
+            salutation2, titel2, firstName2, surname2, email2,
+            bookingStatus, eventId,
+        } = req.body;
+        const schoolId = req.user.role === 'platform_admin' ? req.body.schoolId : req.user.schoolId;
 
         if (!schoolId) return res.status(400).json({ error: 'schoolId is required' });
-        if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
+        if (!firstName || !surname) return res.status(400).json({ error: 'firstName and surname are required' });
+        if (!eventId) return res.status(400).json({ error: 'eventId is required' });
 
-        const school = await prisma.school.findUnique({ where: { id: schoolId } });
-        if (!school) return res.status(404).json({ error: 'School not found' });
-
-        // Pre-generate the DB id so we can pass it to Keycloak as teacherId
-        const teacherDbId = randomUUID();
-
-        const [firstName, ...rest] = name.trim().split(' ');
-        const lastName = rest.join(' ') || firstName;
-
-        // 1. Create Keycloak user first
-        const { keycloakUserId, tempPassword } = await createTeacherUser('school_001', {
-            email,
-            firstName,
-            lastName,
-            schoolId,
-            teacherId: teacherDbId,
+        const teacher = await prisma.teacher.create({
+            data: {
+                schoolId, eventId,
+                klasse, roomNo,
+                salutation: salutation ?? 'Hr.', titel,
+                firstName, surname, email,
+                salutation2, titel2, firstName2, surname2, email2,
+                bookingStatus: bookingStatus ?? 'not_booked',
+            },
         });
 
-        // 2. Create DB record (rollback Keycloak on failure)
-        try {
-            const teacher = await prisma.teacher.create({
-                data: {
-                    id: teacherDbId,
-                    schoolId,
-                    keycloakUserId,
-                    name,
-                    email,
-                    subject,
-                },
-            });
-
-            res.status(201).json({ teacher, tempPassword });
-        } catch (dbErr) {
-            // Best-effort Keycloak rollback
-            await deleteKeycloakUser('school_001', keycloakUserId).catch(() => {});
-            throw dbErr;
-        }
+        res.status(201).json(teacher);
     } catch (err) {
-        if (err.code === 'P2002') return res.status(409).json({ error: 'Email already exists' });
         res.status(500).json({ error: err.message });
     }
 };
@@ -91,21 +79,22 @@ export const updateTeacher = async (req, res) => {
         const existing = await prisma.teacher.findUnique({ where: { id: req.params.id } });
         if (!existing) return res.status(404).json({ error: 'Teacher not found' });
 
-        if (!req.user.isPlatformAdmin && existing.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && existing.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { name, subject, isActive } = req.body;
+        const fields = [
+            'klasse', 'roomNo',
+            'salutation', 'titel', 'firstName', 'surname', 'email',
+            'salutation2', 'titel2', 'firstName2', 'surname2', 'email2',
+            'bookingStatus', 'isActive',
+        ];
+        const data = {};
+        for (const f of fields) {
+            if (req.body[f] !== undefined) data[f] = req.body[f];
+        }
 
-        const teacher = await prisma.teacher.update({
-            where: { id: req.params.id },
-            data: {
-                ...(name && { name }),
-                ...(subject !== undefined && { subject }),
-                ...(isActive !== undefined && { isActive }),
-            },
-        });
-
+        const teacher = await prisma.teacher.update({ where: { id: req.params.id }, data });
         res.json(teacher);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Teacher not found' });
@@ -113,26 +102,17 @@ export const updateTeacher = async (req, res) => {
     }
 };
 
-// DELETE /api/teachers/:id — soft delete in DB + remove from Keycloak
+// DELETE /api/teachers/:id — soft delete
 export const deleteTeacher = async (req, res) => {
     try {
         const existing = await prisma.teacher.findUnique({ where: { id: req.params.id } });
         if (!existing) return res.status(404).json({ error: 'Teacher not found' });
 
-        if (!req.user.isPlatformAdmin && existing.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && existing.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        await prisma.teacher.update({
-            where: { id: req.params.id },
-            data: { isActive: false },
-        });
-
-        // Remove from Keycloak (non-fatal — teacher may have been manually removed)
-        await deleteKeycloakUser('school_001', existing.keycloakUserId).catch((e) => {
-            console.warn('Keycloak user deletion failed (non-fatal):', e.message);
-        });
-
+        await prisma.teacher.update({ where: { id: req.params.id }, data: { isActive: false } });
         res.json({ message: 'Teacher deactivated' });
     } catch (err) {
         res.status(500).json({ error: err.message });

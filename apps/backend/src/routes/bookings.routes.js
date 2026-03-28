@@ -10,7 +10,7 @@ import {
 const router = Router();
 
 // Admin — list bookings (optionally filtered by ?eventId=)
-router.get('/', requireRole('SCHOOL_ADMIN', 'TEACHER'), getBookings);
+router.get('/', requireRole('school_admin', 'teacher'), getBookings);
 
 // Parent — create a booking (requires OTP-issued JWT)
 router.post('/', requireParentToken, createBooking);

@@ -1,19 +1,21 @@
 import { Router } from 'express';
 import { requireRole } from '../middleware/auth.js';
 import {
-    getEvents,
-    getEventById,
-    createEvent,
-    updateEvent,
-    deleteEvent,
+    getEvents, getEventById, createEvent, updateEvent, deleteEvent,
+    duplicateEvent, publishEvent, unpublishEvent,
 } from '../controllers/events.controller.js';
 
 const router = Router();
 
-router.get('/', requireRole('SCHOOL_ADMIN', 'TEACHER'), getEvents);
-router.get('/:id', requireRole('SCHOOL_ADMIN', 'TEACHER'), getEventById);
-router.post('/', requireRole('SCHOOL_ADMIN'), createEvent);
-router.patch('/:id', requireRole('SCHOOL_ADMIN'), updateEvent);
-router.delete('/:id', requireRole('SCHOOL_ADMIN'), deleteEvent);
+router.get('/', requireRole('platform_admin', 'school_admin', 'teacher'), getEvents);
+router.get('/:id', requireRole('platform_admin', 'school_admin', 'teacher'), getEventById);
+router.post('/', requireRole('platform_admin', 'school_admin'), createEvent);
+router.patch('/:id', requireRole('platform_admin', 'school_admin'), updateEvent);
+router.delete('/:id', requireRole('platform_admin', 'school_admin'), deleteEvent);
+
+// Extra actions
+router.post('/:id/duplicate', requireRole('platform_admin', 'school_admin'), duplicateEvent);
+router.post('/:id/publish', requireRole('platform_admin', 'school_admin'), publishEvent);
+router.post('/:id/unpublish', requireRole('platform_admin', 'school_admin'), unpublishEvent);
 
 export default router;

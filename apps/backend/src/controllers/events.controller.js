@@ -1,18 +1,26 @@
 import prisma from '../config/prisma.js';
 
-const VALID_TYPES = ['SLOT_BOOKING', 'RSVP_SIGNUP'];
+const VALID_TYPES = ['slot_booking', 'rsvp_signup'];
 
-// GET /api/events
+// GET /api/events?schoolId=
 export const getEvents = async (req, res) => {
     try {
-        const where = req.user.isPlatformAdmin
-            ? {}
-            : { schoolId: req.user.schoolId, isActive: true };
+        const { schoolId } = req.query;
+
+        const where = { isActive: true };
+
+        if (req.user.role === 'platform_admin') {
+            if (schoolId) where.schoolId = schoolId;
+        } else {
+            where.schoolId = req.user.schoolId;
+        }
 
         const events = await prisma.event.findMany({
             where,
-            include: { _count: { select: { bookings: true, slots: true } } },
-            orderBy: { startDate: 'asc' },
+            include: {
+                _count: { select: { bookings: true, slots: true, teachers: true } },
+            },
+            orderBy: { date: 'asc' },
         });
 
         res.json(events);
@@ -27,18 +35,15 @@ export const getEventById = async (req, res) => {
         const event = await prisma.event.findUnique({
             where: { id: req.params.id },
             include: {
-                slots: {
-                    where: { isActive: true },
-                    include: { teacher: { select: { id: true, name: true } } },
-                    orderBy: { startTime: 'asc' },
-                },
+                teachers: { where: { isActive: true }, orderBy: { surname: 'asc' } },
+                slots: { where: { isActive: true }, orderBy: { time: 'asc' } },
                 _count: { select: { bookings: true } },
             },
         });
 
         if (!event) return res.status(404).json({ error: 'Event not found' });
 
-        if (!req.user.isPlatformAdmin && event.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && event.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
@@ -51,28 +56,37 @@ export const getEventById = async (req, res) => {
 // POST /api/events
 export const createEvent = async (req, res) => {
     try {
-        const { title, description, eventType, startDate, endDate, location, maxCapacity } = req.body;
-        const schoolId = req.user.isPlatformAdmin ? req.body.schoolId : req.user.schoolId;
+        const {
+            name, description, type,
+            date, startTime, endTime,
+            sessionLength, breakLength,
+            location, maxCapacity,
+        } = req.body;
+
+        const schoolId = req.user.role === 'platform_admin' ? req.body.schoolId : req.user.schoolId;
 
         if (!schoolId) return res.status(400).json({ error: 'schoolId is required' });
-        if (!title || !eventType || !startDate || !endDate) {
-            return res.status(400).json({ error: 'title, eventType, startDate, endDate are required' });
+        if (!name || !date || !startTime || !endTime) {
+            return res.status(400).json({ error: 'name, date, startTime, endTime are required' });
         }
-        if (!VALID_TYPES.includes(eventType)) {
-            return res.status(400).json({ error: `eventType must be one of: ${VALID_TYPES.join(', ')}` });
+        if (type && !VALID_TYPES.includes(type)) {
+            return res.status(400).json({ error: `type must be one of: ${VALID_TYPES.join(', ')}` });
         }
 
         const event = await prisma.event.create({
             data: {
                 schoolId,
-                title,
+                name,
                 description,
-                eventType,
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                type: type ?? 'slot_booking',
+                date,
+                startTime,
+                endTime,
+                sessionLength: sessionLength ?? 10,
+                breakLength: breakLength ?? 5,
                 location,
                 maxCapacity,
-                createdBy: req.user.id,
+                createdBy: req.user?.id,
             },
         });
 
@@ -88,25 +102,21 @@ export const updateEvent = async (req, res) => {
         const existing = await prisma.event.findUnique({ where: { id: req.params.id } });
         if (!existing) return res.status(404).json({ error: 'Event not found' });
 
-        if (!req.user.isPlatformAdmin && existing.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && existing.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, startDate, endDate, location, maxCapacity, isActive } = req.body;
+        const fields = [
+            'name', 'description', 'type', 'date', 'startTime', 'endTime',
+            'sessionLength', 'breakLength', 'location', 'maxCapacity',
+            'bookingActive', 'status', 'isActive',
+        ];
+        const data = {};
+        for (const f of fields) {
+            if (req.body[f] !== undefined) data[f] = req.body[f];
+        }
 
-        const event = await prisma.event.update({
-            where: { id: req.params.id },
-            data: {
-                ...(title && { title }),
-                ...(description !== undefined && { description }),
-                ...(startDate && { startDate: new Date(startDate) }),
-                ...(endDate && { endDate: new Date(endDate) }),
-                ...(location !== undefined && { location }),
-                ...(maxCapacity !== undefined && { maxCapacity }),
-                ...(isActive !== undefined && { isActive }),
-            },
-        });
-
+        const event = await prisma.event.update({ where: { id: req.params.id }, data });
         res.json(event);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Event not found' });
@@ -120,16 +130,79 @@ export const deleteEvent = async (req, res) => {
         const existing = await prisma.event.findUnique({ where: { id: req.params.id } });
         if (!existing) return res.status(404).json({ error: 'Event not found' });
 
-        if (!req.user.isPlatformAdmin && existing.schoolId !== req.user.schoolId) {
+        if (!req.user.role === 'platform_admin' && existing.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        await prisma.event.update({
+        await prisma.event.update({ where: { id: req.params.id }, data: { isActive: false } });
+        res.json({ message: 'Event deactivated' });
+    } catch (err) {
+        if (err.code === 'P2025') return res.status(404).json({ error: 'Event not found' });
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// POST /api/events/:id/duplicate
+export const duplicateEvent = async (req, res) => {
+    try {
+        const source = await prisma.event.findUnique({
             where: { id: req.params.id },
-            data: { isActive: false },
+            include: { teachers: true, slots: true },
+        });
+        if (!source) return res.status(404).json({ error: 'Event not found' });
+
+        if (!req.user.role === 'platform_admin' && source.schoolId !== req.user.schoolId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const { id, qrToken, qrCodeUrl, createdAt, ...rest } = source;
+
+        const newEvent = await prisma.event.create({
+            data: {
+                ...rest,
+                name: `${source.name} (Copy)`,
+                status: 'draft',
+                bookingActive: false,
+                teachers: {
+                    create: source.teachers.map(({ id: _id, eventId: _eid, createdAt: _ca, ...t }) => t),
+                },
+                slots: {
+                    create: source.slots.map(({ id: _id, eventId: _eid, currentBookings: _cb, ...s }) => ({
+                        ...s,
+                        currentBookings: 0,
+                    })),
+                },
+            },
         });
 
-        res.json({ message: 'Event deactivated' });
+        res.status(201).json(newEvent);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// POST /api/events/:id/publish
+export const publishEvent = async (req, res) => {
+    try {
+        const event = await prisma.event.update({
+            where: { id: req.params.id },
+            data: { status: 'published' },
+        });
+        res.json(event);
+    } catch (err) {
+        if (err.code === 'P2025') return res.status(404).json({ error: 'Event not found' });
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// POST /api/events/:id/unpublish
+export const unpublishEvent = async (req, res) => {
+    try {
+        const event = await prisma.event.update({
+            where: { id: req.params.id },
+            data: { status: 'draft', bookingActive: false },
+        });
+        res.json(event);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Event not found' });
         res.status(500).json({ error: err.message });

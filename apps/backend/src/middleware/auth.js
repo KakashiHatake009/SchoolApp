@@ -1,70 +1,40 @@
-import Keycloak from 'keycloak-connect';
-import session from 'express-session';
 import jwt from 'jsonwebtoken';
 
-// ── Session (required by keycloak-connect) ─────────────────────────────────
-export const sessionMiddleware = session({
-    secret: 'some-secret',
-    resave: false,
-    saveUninitialized: false,
-});
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
-// ── Keycloak instance ───────────────────────────────────────────────────────
-export const keycloak = new Keycloak(
-    { store: session.MemoryStore },
-    {
-        'auth-server-url': process.env.KEYCLOAK_URL,
-        realm: process.env.KEYCLOAK_REALM,
-        resource: process.env.KEYCLOAK_CLIENT_ID,
-        'bearer-only': true,
+// ── Extract and verify JWT from Authorization header ────────────────────────
+export const requireAuth = (req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
-);
-
-// ── Extract user from Keycloak token ───────────────────────────────────────
-function extractUser(token) {
-    return {
-        id: token.sub,
-        email: token.email,
-        name: token.name,
-        roles: token.realm_access?.roles ?? [],
-        schoolId: token.school_id ?? null,
-        teacherId: token.teacher_id ?? null,
-        realm: token.iss.split('/realms/')[1],
-        isPlatformAdmin: token.realm_access?.roles?.includes('PLATFORM_ADMIN') ?? false,
-    };
-}
+    try {
+        req.user = jwt.verify(auth.slice(7), JWT_SECRET);
+        next();
+    } catch {
+        res.status(401).json({ error: 'Invalid or expired token' });
+    }
+};
 
 // ── requireRole ─────────────────────────────────────────────────────────────
 // Usage: requireRole('SCHOOL_ADMIN')  or  requireRole('SCHOOL_ADMIN', 'TEACHER')
-// PLATFORM_ADMIN bypasses all role checks automatically
+// platform_admin bypasses all role checks automatically
 export const requireRole = (...roles) => [
-    keycloak.protect(),
+    requireAuth,
     (req, res, next) => {
-        const token = req.kauth?.grant?.access_token?.content;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-        req.user = extractUser(token);
-
-        // Platform admin bypasses all role checks
-        if (req.user.isPlatformAdmin) return next();
-
-        const hasRole = roles.some(r => req.user.roles.includes(r));
-        if (!hasRole) return res.status(403).json({ error: 'Forbidden' });
-
+        if (req.user.role === 'platform_admin') return next();
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         next();
     },
 ];
 
 // ── requirePlatformAdmin ────────────────────────────────────────────────────
 export const requirePlatformAdmin = [
-    keycloak.protect(),
+    requireAuth,
     (req, res, next) => {
-        const token = req.kauth?.grant?.access_token?.content;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-        req.user = extractUser(token);
-
-        if (!req.user.isPlatformAdmin) {
+        if (req.user.role !== 'platform_admin') {
             return res.status(403).json({ error: 'Platform admin access required' });
         }
         next();
@@ -73,13 +43,12 @@ export const requirePlatformAdmin = [
 
 // ── requireParentToken ──────────────────────────────────────────────────────
 // Validates the short-lived JWT issued after OTP verification.
-// Used by booking endpoints — parents have no Keycloak accounts.
+// Used by booking endpoints — parents have no user accounts.
 export const requireParentToken = (req, res, next) => {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Parent token required' });
     }
-
     try {
         const payload = jwt.verify(auth.slice(7), process.env.OTP_JWT_SECRET);
         if (payload.type !== 'parent_otp') {

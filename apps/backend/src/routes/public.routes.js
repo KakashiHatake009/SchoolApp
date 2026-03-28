@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { getPublicEvent, getPublicSlots } from '../controllers/public.controller.js';
+import { getPublicEvent, getPublicSlots, getPublicTeachers } from '../controllers/public.controller.js';
 
 const router = Router();
 
-// No authentication — these are accessed by parents from QR code scans
+// No authentication — accessed by parents from QR code scans
 router.get('/events/by-qr/:qrToken', getPublicEvent);
 router.get('/events/by-qr/:qrToken/slots', getPublicSlots);
+router.get('/events/by-qr/:qrToken/teachers', getPublicTeachers);
 
 export default router;
