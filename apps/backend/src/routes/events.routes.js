@@ -6,14 +6,22 @@ import {
     createEvent,
     updateEvent,
     deleteEvent,
+    publishEvent,
+    unpublishEvent,
+    duplicateEvent,
+    getEventQr,
 } from '../controllers/events.controller.js';
 
 const router = Router();
 
-router.get('/', requireRole('SCHOOL_ADMIN', 'TEACHER'), getEvents);
-router.get('/:id', requireRole('SCHOOL_ADMIN', 'TEACHER'), getEventById);
-router.post('/', requireRole('SCHOOL_ADMIN'), createEvent);
-router.patch('/:id', requireRole('SCHOOL_ADMIN'), updateEvent);
-router.delete('/:id', requireRole('SCHOOL_ADMIN'), deleteEvent);
+router.get('/', requireRole('school_admin', 'teacher'), getEvents);
+router.get('/:id', requireRole('school_admin', 'teacher'), getEventById);
+router.post('/', requireRole('school_admin'), createEvent);
+router.patch('/:id', requireRole('school_admin'), updateEvent);
+router.delete('/:id', requireRole('school_admin'), deleteEvent);
+router.post('/:id/publish', requireRole('school_admin'), publishEvent);
+router.post('/:id/unpublish', requireRole('school_admin'), unpublishEvent);
+router.post('/:id/duplicate', requireRole('school_admin'), duplicateEvent);
+router.get('/:id/qr', requireRole('school_admin', 'teacher'), getEventQr);
 
 export default router;

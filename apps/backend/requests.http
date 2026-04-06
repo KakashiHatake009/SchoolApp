@@ -40,7 +40,7 @@ GET {{host}}/health
 POST {{kc}}
 Content-Type: application/x-www-form-urlencoded
 
-grant_type=password&client_id=school-portal&username=platform_admin&password=PlatformAdmin1234!
+grant_type=password&client_id=school-portal&username=platform_admin&password=x
 
 ###
 

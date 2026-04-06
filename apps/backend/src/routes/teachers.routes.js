@@ -6,14 +6,16 @@ import {
     createTeacher,
     updateTeacher,
     deleteTeacher,
+    notifyTeacher,
 } from '../controllers/teachers.controller.js';
 
 const router = Router();
 
-router.get('/', requireRole('SCHOOL_ADMIN', 'TEACHER'), getTeachers);
-router.get('/:id', requireRole('SCHOOL_ADMIN', 'TEACHER'), getTeacherById);
-router.post('/', requireRole('SCHOOL_ADMIN'), createTeacher);
-router.patch('/:id', requireRole('SCHOOL_ADMIN'), updateTeacher);
-router.delete('/:id', requireRole('SCHOOL_ADMIN'), deleteTeacher);
+router.get('/', requireRole('school_admin', 'teacher'), getTeachers);
+router.get('/:id', requireRole('school_admin', 'teacher'), getTeacherById);
+router.post('/', requireRole('school_admin'), createTeacher);
+router.patch('/:id', requireRole('school_admin'), updateTeacher);
+router.delete('/:id', requireRole('school_admin'), deleteTeacher);
+router.post('/:id/notify', requireRole('school_admin'), notifyTeacher);
 
 export default router;

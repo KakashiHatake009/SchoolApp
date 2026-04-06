@@ -7,79 +7,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Auth users (platform_admin, school_admin, teacher) ─────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // 'platform_admin' | 'school_admin' | 'teacher'
+  schoolId  String?
+  teacherId String?
+  createdAt DateTime @default(now())
+}
+
+// ── School ──────────────────────────────────────────────────────────────────
 model School {
-  id               String   @id @default(cuid())
-  name             String
-  address          String?
-  contactEmail     String
-  subscriptionPlan String   @default("FREE")
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  website            String   @default("")
+  phone              String   @default("")
+  email              String   @default("")
+  street             String   @default("")
+  postcode           String   @default("")
+  city               String   @default("")
+  contactPerson      String   @default("")
+  contactPhone       String   @default("")
+  contactEmail       String   @default("")
+  logo               String?
+  subscriptionStatus String   @default("trial")
+  createdAt          DateTime @default(now())
 
-  teachers Teacher[]
-  events   Event[]
+  events Event[]
 }
 
-model Teacher {
-  id              String   @id @default(cuid())
-  schoolId        String
-  keycloakUserId  String   @unique
-  name            String
-  email           String
-  subject         String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-
-  school School @relation(fields: [schoolId], references: [id])
-  slots  Slot[]
-}
-
+// ── Event ───────────────────────────────────────────────────────────────────
 model Event {
-  id           String   @id @default(cuid())
-  schoolId     String
-  title        String
-  description  String?
-  eventType    String
-  startDate    DateTime
-  endDate      DateTime
-  location     String?
-  maxCapacity  Int?
-  qrCodeUrl    String?
-  qrToken      String   @unique @default(cuid())
-  createdBy    String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  schoolId       String
+  name           String
+  description    String?
+  type           String   @default("slot_booking")
+  date           String   // 'YYYY-MM-DD' — kept for backward compat / fallback
+  startTime      String   // 'HH:mm'
+  endTime        String   // 'HH:mm'
+  sessionLength  Int      @default(15)
+  breakLength    Int      @default(5)
+  status         String   @default("draft")
+  bookingActive  Boolean  @default(false)
+  qrCode         String?
+  qrToken        String   @unique @default(cuid())
+  link           String?
+  duplicatedFrom String?
+  createdAt      DateTime @default(now())
 
-  school   School    @relation(fields: [schoolId], references: [id])
+  school   School     @relation(fields: [schoolId], references: [id])
+  days     EventDay[]
+  teachers Teacher[]
   slots    Slot[]
   bookings Booking[]
 }
 
-model Slot {
-  id              String   @id @default(cuid())
-  eventId         String
-  teacherId       String?
-  startTime       DateTime
-  endTime         DateTime
-  maxBookings     Int      @default(1)
-  currentBookings Int      @default(0)
-  isActive        Boolean  @default(true)
+// ── Event Days (individual dates for a multi-day event) ──────────────────────
+model EventDay {
+  id        String @id @default(cuid())
+  eventId   String
+  date      String // 'YYYY-MM-DD'
+  startTime String // 'HH:mm'
+  endTime   String // 'HH:mm'
 
-  event    Event    @relation(fields: [eventId], references: [id])
-  teacher  Teacher? @relation(fields: [teacherId], references: [id])
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ── Teacher (per-event) ─────────────────────────────────────────────────────
+model Teacher {
+  id            String   @id @default(cuid())
+  schoolId      String
+  eventId       String
+  klasse        String?
+  roomNo        String?
+  salutation    String   // 'Hr.' | 'Fr.'
+  titel         String?
+  firstName     String
+  surname       String
+  email         String?
+  salutation2   String?
+  titel2        String?
+  firstName2    String?
+  surname2      String?
+  email2        String?
+  bookingStatus      String    @default("not_booked")
+  isActive           Boolean   @default(true)
+  accessCode         String?
+  accessCodeExpires  DateTime?
+  accessCode2        String?
+  accessCode2Expires DateTime?
+  teacher1Confirmed  Boolean   @default(false)
+  teacher2Confirmed  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  event Event  @relation(fields: [eventId], references: [id])
+  slots Slot[]
+}
+
+// ── Appointment Slot ────────────────────────────────────────────────────────
+model Slot {
+  id               String  @id @default(cuid())
+  teacherId        String
+  eventId          String
+  time             String  // 'HH:mm'
+  date             String  // 'YYYY-MM-DD'
+  status           String  @default("available") // 'available' | 'booked' | 'disabled'
+  teacher1Present  Boolean?
+  teacher2Present  Boolean?
+
+  teacher  Teacher   @relation(fields: [teacherId], references: [id])
+  event    Event     @relation(fields: [eventId], references: [id])
   bookings Booking[]
 }
 
+// ── Booking ─────────────────────────────────────────────────────────────────
 model Booking {
-  id          String    @id @default(cuid())
-  eventId     String
-  slotId      String?
-  parentEmail String
-  childName   String?
-  status      String    @default("CONFIRMED")
-  cancelToken String    @unique @default(uuid())
-  bookedAt    DateTime  @default(now())
-  modifiedAt  DateTime?
+  id                     String   @id @default(cuid())
+  slotId                 String?
+  eventId                String
+  salutation             String?
+  parentFirstName        String?
+  parentSurname          String
+  parentEmail            String
+  phone                  String?
+  childName              String?
+  childClass             String?
+  numberOfPersons        Int      @default(1)
+  secondPersonSalutation String?
+  secondPersonFirstName  String?
+  secondPersonSurname    String?
+  note                   String?
+  status                 String   @default("confirmed")
+  cancelToken            String   @unique @default(uuid())
+  bookedAt               DateTime @default(now())
 
   event Event  @relation(fields: [eventId], references: [id])
   slot  Slot?  @relation(fields: [slotId], references: [id])
