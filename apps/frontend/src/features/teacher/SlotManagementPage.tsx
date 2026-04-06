@@ -65,7 +65,7 @@ export default function SlotManagementPage() {
       {/* Legend */}
       <div className="flex items-center gap-6 mb-4 text-sm text-gray-600">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-[#4a90b8]" />
+          <div className="w-5 h-5 rounded bg-[#1565c0]" />
           <span>Verfügbar</span>
         </div>
         <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function SlotManagementPage() {
                               ? 'bg-[#e07b2e] text-white cursor-not-allowed'
                               : isDisabled
                               ? 'bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-pointer'
-                              : 'bg-[#4a90b8] text-white hover:bg-[#3a7a9e] cursor-pointer'
+                              : 'bg-[#1565c0] text-white hover:bg-[#3a7a9e] cursor-pointer'
                             }`}
                           title={isBooked ? 'Gebucht – kann nicht geändert werden' : isDisabled ? 'Klicken zum Aktivieren' : 'Klicken zum Deaktivieren'}
                         />

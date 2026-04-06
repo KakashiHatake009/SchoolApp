@@ -19,8 +19,10 @@ type TeacherSession = {
 }
 
 // ── Public API helpers (no auth store token) ───────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 const publicFetch = async <T,>(path: string, options?: RequestInit): Promise<T> => {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}/api${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   })
@@ -111,7 +113,7 @@ export default function TeacherManagePage() {
   // SSE: subscribe to real-time slot updates so both teachers see each other's changes instantly
   useEffect(() => {
     if (!eventId || !teacherSession) return
-    const es = new EventSource(`/api/public/events/${eventId}/slot-updates`)
+    const es = new EventSource(`${API_BASE}/api/public/events/${eventId}/slot-updates`)
     es.onmessage = (e) => {
       const updatedSlot: AppointmentSlot = JSON.parse(e.data)
       qc.setQueryData(
@@ -255,13 +257,13 @@ export default function TeacherManagePage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleEnter() }}
-            className="border border-gray-300 rounded px-4 py-2 text-sm w-72 focus:outline-none focus:border-[#4a90b8] mb-4 bg-white"
+            className="border border-gray-300 rounded px-4 py-2 text-sm w-72 focus:outline-none focus:border-[#1565c0] mb-4 bg-white"
           />
           {codeError && <p className="text-xs text-red-500 mb-3">{codeError}</p>}
           <button
             onClick={handleEnter}
             disabled={codeLoading}
-            className="bg-[#2d6a9f] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#245a8a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-[#1565c0] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#0d47a1] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {codeLoading ? '…' : 'ENTER'}
           </button>
@@ -282,13 +284,17 @@ export default function TeacherManagePage() {
       return d.toLocaleString('de-DE', { month: 'long', year: 'numeric' })
     }
 
-    const slotsByDateAndTime: Record<string, Record<string, AppointmentSlot>> = {}
+    const slotsByDate: Record<string, AppointmentSlot[]> = {}
     for (const slot of slots) {
-      if (!slotsByDateAndTime[slot.date]) slotsByDateAndTime[slot.date] = {}
-      slotsByDateAndTime[slot.date][slot.time] = slot
+      if (!slotsByDate[slot.date]) slotsByDate[slot.date] = []
+      slotsByDate[slot.date].push(slot)
     }
-    const allTimes = [...new Set(slots.map((s) => s.time))].sort()
+    for (const date of Object.keys(slotsByDate)) {
+      slotsByDate[date].sort((a, b) => a.time.localeCompare(b.time))
+    }
     const cols = Math.max(weekDates.length, 1)
+    const canGoPrev = currentWeekOffset > 0
+    const canGoNext = (currentWeekOffset + 1) * 5 < allDates.length
 
     const hasSecondTeacher = !!(teacherSession?.teacher.firstName2 && teacherSession?.teacher.surname2)
 
@@ -338,7 +344,7 @@ export default function TeacherManagePage() {
           >
             {slot.time}
           </button>
-          {hasSecondTeacher && !isBooked && (
+          {hasSecondTeacher && (
             <div className="flex gap-1">
               <span
                 className={`text-[8px] font-semibold leading-none ${labelColor(slot.teacher1Present)}`}
@@ -378,13 +384,15 @@ export default function TeacherManagePage() {
         {/* Week navigation */}
         <div className="flex items-center justify-between mb-3">
           <button
+            disabled={!canGoPrev}
             onClick={() => setCurrentWeekOffset((w) => Math.max(0, w - 1))}
-            className="text-gray-500 hover:text-gray-800 cursor-pointer text-xl px-2"
+            className={`text-xl px-2 transition-colors ${canGoPrev ? 'text-gray-700 hover:text-gray-900 cursor-pointer' : 'text-gray-200 cursor-not-allowed'}`}
           >‹</button>
           <span className="text-sm text-gray-700 font-medium">{getMonthLabel()}</span>
           <button
+            disabled={!canGoNext}
             onClick={() => setCurrentWeekOffset((w) => w + 1)}
-            className="text-gray-500 hover:text-gray-800 cursor-pointer text-xl px-2"
+            className={`text-xl px-2 transition-colors ${canGoNext ? 'text-gray-700 hover:text-gray-900 cursor-pointer' : 'text-gray-200 cursor-not-allowed'}`}
           >›</button>
         </div>
 
@@ -392,16 +400,16 @@ export default function TeacherManagePage() {
         <div className="flex gap-4 items-start mb-8">
 
           {/* Calendar grid */}
-          <div className="flex-1 border border-gray-200 rounded overflow-hidden">
+          <div className="flex-1 rounded overflow-hidden">
             <div
-              className="grid bg-[#dde8ee] border-b border-gray-200"
-              style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+              className="grid bg-[#dde8ee] rounded-t justify-center"
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
             >
               {weekDates.map((date) => {
                 const d = new Date(date)
                 const di = d.getDay() === 0 ? 6 : d.getDay() - 1
                 return (
-                  <div key={date} className="text-center py-2 text-xs font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
+                  <div key={date} className="text-center py-2 text-xs font-medium text-gray-700">
                     <div>{DAY_SHORT[di]}</div>
                     <div>{d.getDate()}</div>
                   </div>
@@ -409,26 +417,21 @@ export default function TeacherManagePage() {
               })}
             </div>
 
-            <div className="overflow-y-auto max-h-96">
-              {allTimes.map((time) => (
-                <div
-                  key={time}
-                  className="grid border-b border-gray-100 last:border-b-0"
-                  style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-                >
-                  {weekDates.map((date) => {
-                    const slot = slotsByDateAndTime[date]?.[time]
-                    if (!slot) return <div key={date} className="border-r border-gray-100 last:border-r-0 p-1" />
-                    return (
-                      <div key={slot.id} className="border-r border-gray-100 last:border-r-0 p-1 flex items-center justify-center min-h-[2.5rem]">
-                        {slotBtn(slot)}
-                      </div>
-                    )
-                  })}
+            <div
+              className="grid overflow-y-auto max-h-96 justify-center items-start"
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
+            >
+              {weekDates.map((date) => (
+                <div key={date} className="flex flex-col items-center">
+                  {(slotsByDate[date] ?? []).map((slot) => (
+                    <div key={slot.id} className="py-1 px-1">
+                      {slotBtn(slot)}
+                    </div>
+                  ))}
                 </div>
               ))}
-              {allTimes.length === 0 && (
-                <div className="py-6 text-center text-sm text-gray-400">Keine Zeitfenster vorhanden.</div>
+              {weekDates.every((date) => !(slotsByDate[date]?.length)) && (
+                <div className="col-span-full py-6 text-center text-sm text-gray-400">Keine Zeitfenster vorhanden.</div>
               )}
             </div>
           </div>
@@ -444,12 +447,12 @@ export default function TeacherManagePage() {
                   <div className="space-y-1 text-gray-700">
                     <div className="leading-snug">
                       <span className="font-medium">T1</span>
-                      {myIndex === 1 && <span className="text-[#2d6a9f] ml-1">(Sie)</span>}
+                      {myIndex === 1 && <span className="text-[#1565c0] ml-1">(Sie)</span>}
                       <br /><span className="text-gray-500">{t1Name}</span>
                     </div>
                     <div className="leading-snug">
                       <span className="font-medium">T2</span>
-                      {myIndex === 2 && <span className="text-[#2d6a9f] ml-1">(Sie)</span>}
+                      {myIndex === 2 && <span className="text-[#1565c0] ml-1">(Sie)</span>}
                       <br /><span className="text-gray-500">{t2Name}</span>
                     </div>
                   </div>
@@ -495,14 +498,14 @@ export default function TeacherManagePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="border border-[#2d6a9f] text-[#2d6a9f] text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#dde8ee] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="border border-[#1565c0] text-[#1565c0] text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#dde8ee] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? '…' : 'SPEICHERN'}
           </button>
           <button
             onClick={handlePublish}
             disabled={publishing}
-            className="bg-[#2d6a9f] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#245a8a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-[#1565c0] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#0d47a1] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishing ? '…' : 'VERÖFFENTLICHEN'}
           </button>
@@ -510,14 +513,14 @@ export default function TeacherManagePage() {
         <div className="sm:hidden flex justify-between gap-4">
           <button
             onClick={() => setStep('confirmed')}
-            className="flex-1 py-3 rounded border border-[#2d6a9f] text-[#2d6a9f] text-xs tracking-widest uppercase font-medium hover:bg-[#dde8ee] transition-colors"
+            className="flex-1 py-3 rounded border border-[#1565c0] text-[#1565c0] text-xs tracking-widest uppercase font-medium hover:bg-[#dde8ee] transition-colors"
           >
             SPEICHERN
           </button>
           <button
             onClick={handlePublish}
             disabled={publishing}
-            className="flex-1 py-3 rounded bg-[#2d6a9f] text-white text-xs tracking-widest uppercase font-medium hover:bg-[#245a8a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-3 rounded bg-[#1565c0] text-white text-xs tracking-widest uppercase font-medium hover:bg-[#0d47a1] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishing ? '…' : 'VERÖFFENTLICHEN'}
           </button>
@@ -535,8 +538,8 @@ export default function TeacherManagePage() {
         <span className="text-sm text-gray-400 cursor-pointer hover:text-gray-600">Language</span>
       </header>
 
-      <main className="flex-1 flex flex-col px-6 py-10 w-full max-w-5xl mx-auto">
-        <div className="bg-[#dde8ee] rounded-lg px-6 py-5 mb-8 max-w-2xl">
+      <main className="flex-1 flex flex-col items-center px-6 py-10 w-full max-w-5xl mx-auto">
+        <div className="bg-[#dde8ee] rounded-lg px-6 py-5 mb-8 max-w-2xl text-center">
           <p className="font-bold text-gray-800 text-base leading-relaxed">
             Ihre Zeiteinstellungen wurden aktualisiert. Sie können die Seite jetzt verlassen.
           </p>
@@ -544,12 +547,18 @@ export default function TeacherManagePage() {
 
         <div className="flex-1" />
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <button
             onClick={() => setStep('slots')}
-            className="bg-[#2d6a9f] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#245a8a] transition-colors"
+            className="border border-[#1565c0] text-[#1565c0] text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#dde8ee] transition-colors"
           >
-            ZEITEN ÄNDERN
+            VERFÜGBARKEIT ANPASSEN
+          </button>
+          <button
+            onClick={() => window.close()}
+            className="bg-[#1565c0] text-white text-xs tracking-widest uppercase font-medium px-10 py-3 rounded hover:bg-[#0d47a1] transition-colors"
+          >
+            FENSTER SCHLIESSEN
           </button>
         </div>
       </main>

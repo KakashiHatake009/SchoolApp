@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { requireRole } from './middleware/auth.js';
 
@@ -17,7 +18,8 @@ const app = express();
 
 // ── Core middleware ─────────────────────────────────────────────────────────
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: process.env.APP_BASE_URL || 'http://localhost:3001', credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 
 // ── Health check ────────────────────────────────────────────────────────────

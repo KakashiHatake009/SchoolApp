@@ -116,6 +116,24 @@ Please do not reply to this email.
     });
 }
 
+// ── Password reset email ─────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail(email, code) {
+    await transporter.sendMail({
+        from: FROM,
+        to: email,
+        subject: 'Password Reset Code',
+        text: `Your password reset code is: ${code}\n\nThis code expires in 10 minutes.`,
+        html: `
+            <h2>Password Reset</h2>
+            <p>You requested a password reset. Use the code below:</p>
+            <p style="font-size: 32px; letter-spacing: 8px; font-weight: bold;">${code}</p>
+            <p>This code expires in <strong>10 minutes</strong>.</p>
+            <p>If you did not request this, please ignore this email.</p>
+        `,
+    });
+}
+
 // ── Booking cancellation email ────────────────────────────────────────────────
 
 export async function sendCancellationEmail(email, { eventTitle }) {

@@ -207,14 +207,59 @@ export const getEventQr = async (req, res) => {
     }
 };
 
+// ── Slot generation helper ───────────────────────────────────────────────────
+function generateSlotTimes(startTime, endTime, sessionLength, breakLength, date, teacherId, eventId) {
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const endMinutes = eh * 60 + em;
+    const slots = [];
+    let cur = sh * 60 + sm;
+    while (cur + sessionLength <= endMinutes) {
+        const h = String(Math.floor(cur / 60)).padStart(2, '0');
+        const m = String(cur % 60).padStart(2, '0');
+        slots.push({ teacherId, eventId, date, time: `${h}:${m}` });
+        cur += sessionLength + breakLength;
+    }
+    return slots;
+}
+
 // ── POST /api/events/:id/publish ─────────────────────────────────────────────
 export const publishEvent = async (req, res) => {
     try {
-        const existing = await prisma.event.findUnique({ where: { id: req.params.id } });
+        const existing = await prisma.event.findUnique({
+            where: { id: req.params.id },
+            include: { days: { orderBy: { date: 'asc' } }, teachers: true },
+        });
         if (!existing) return res.status(404).json({ error: 'Event not found' });
         if (!req.user.isPlatformAdmin && existing.schoolId !== req.user.schoolId) {
             return res.status(403).json({ error: 'Forbidden' });
         }
+
+        // Auto-generate slots for teachers that haven't confirmed yet
+        const days = existing.days.length > 0
+            ? existing.days
+            : [{ date: existing.date, startTime: existing.startTime, endTime: existing.endTime }];
+
+        for (const teacher of existing.teachers) {
+            const existingSlots = await prisma.slot.findMany({
+                where: { teacherId: teacher.id, eventId: existing.id },
+                select: { date: true, time: true },
+            });
+            const existingKeys = new Set(existingSlots.map((s) => `${s.date}|${s.time}`));
+
+            const slotsToCreate = days.flatMap((day) =>
+                generateSlotTimes(
+                    day.startTime, day.endTime,
+                    existing.sessionLength, existing.breakLength,
+                    day.date, teacher.id, existing.id,
+                ).filter((s) => !existingKeys.has(`${s.date}|${s.time}`))
+            );
+
+            if (slotsToCreate.length > 0) {
+                await prisma.slot.createMany({ data: slotsToCreate });
+            }
+        }
+
         const event = await prisma.event.update({
             where: { id: req.params.id },
             data: { status: 'published', bookingActive: true },

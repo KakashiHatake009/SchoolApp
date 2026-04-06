@@ -70,7 +70,7 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold text-gray-800">Schools</h2>
           <button
             onClick={() => navigate('/schools/create')}
-            className="flex items-center gap-1 bg-[#4a90b8] text-white text-sm px-3 py-1.5 rounded-full hover:bg-[#3a7a9e] transition-colors cursor-pointer font-medium"
+            className="flex items-center gap-1 bg-[#1565c0] text-white text-sm px-3 py-1.5 rounded-full hover:bg-[#3a7a9e] transition-colors cursor-pointer font-medium"
           >
             <Plus size={14} /> add
           </button>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             value={schoolSearch}
             onChange={(e) => setSchoolSearch(e.target.value)}
             placeholder="search"
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#4a90b8] w-48"
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
           />
         </div>
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
               <div
                 key={school.id}
                 onClick={() => navigate(`/schools/${school.id}`)}
-                className="w-44 border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-[#4a90b8] hover:shadow-sm transition-all"
+                className="w-44 border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-[#1565c0] hover:shadow-sm transition-all"
               >
                 {/* Logo area */}
                 <div className="h-28 bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -121,7 +121,7 @@ export default function DashboardPage() {
             value={eventSearch}
             onChange={(e) => setEventSearch(e.target.value)}
             placeholder="search"
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#4a90b8] w-48"
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
           />
         </div>
 
@@ -160,16 +160,16 @@ export default function DashboardPage() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => navigate(`/events/${event.id}`)}
-                      className="text-[#4a90b8] underline text-sm hover:text-[#3a7a9e] cursor-pointer"
+                      className="text-[#1565c0] underline text-sm hover:text-[#3a7a9e] cursor-pointer"
                     >
                       View list
                     </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-gray-500">
-                      <button title="Edit" onClick={() => navigate(`/events/${event.id}`)} className="hover:text-[#4a90b8] cursor-pointer"><Pencil size={15} /></button>
-                      <button title="Duplicate" onClick={() => duplicateMut.mutate({ id: event.id, name: event.name })} className="hover:text-[#4a90b8] cursor-pointer"><Copy size={15} /></button>
-                      <button title="Copy link" onClick={() => copyLink(event)} className={`cursor-pointer ${linkCopiedId === event.id ? 'text-green-500' : 'hover:text-[#4a90b8]'}`}><Link size={15} /></button>
+                      <button title="Edit" onClick={() => navigate(`/events/${event.id}`)} className="hover:text-[#1565c0] cursor-pointer"><Pencil size={15} /></button>
+                      <button title="Duplicate" onClick={() => duplicateMut.mutate({ id: event.id, name: event.name })} className="hover:text-[#1565c0] cursor-pointer"><Copy size={15} /></button>
+                      <button title="Copy link" onClick={() => copyLink(event)} className={`cursor-pointer ${linkCopiedId === event.id ? 'text-green-500' : 'hover:text-[#1565c0]'}`}><Link size={15} /></button>
                       <button title="Delete" onClick={() => setDeleteEventId(event.id)} className="hover:text-red-500 cursor-pointer"><Trash2 size={15} /></button>
                     </div>
                   </td>

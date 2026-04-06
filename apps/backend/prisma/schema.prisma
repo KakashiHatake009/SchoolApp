@@ -15,8 +15,9 @@ model User {
   name      String
   role      String   // 'platform_admin' | 'school_admin' | 'teacher'
   schoolId  String?
-  teacherId String?
-  createdAt DateTime @default(now())
+  teacherId    String?
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
 }
 
 // ── School ──────────────────────────────────────────────────────────────────

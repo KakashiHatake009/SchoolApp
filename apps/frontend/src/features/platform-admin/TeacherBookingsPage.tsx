@@ -69,7 +69,7 @@ export default function TeacherBookingsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="search"
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#4a90b8] w-48"
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
         />
       </div>
 

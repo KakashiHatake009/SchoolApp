@@ -17,7 +17,7 @@ const Field = ({ placeholder, value, onChange, type = 'text', className = '' }: 
     placeholder={placeholder}
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className={`border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#4a90b8] w-full ${className}`}
+    className={`border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] w-full ${className}`}
   />
 )
 
@@ -27,7 +27,7 @@ const FSelect = ({ placeholder, value, onChange, options }: {
   <select
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#4a90b8] w-full bg-white"
+    className="border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#1565c0] w-full bg-white"
   >
     <option value="">{placeholder}</option>
     {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -145,7 +145,7 @@ export default function EditEventPage() {
           value={form.description}
           onChange={(e) => ff('description')(e.target.value)}
           rows={4}
-          className="border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#4a90b8] w-full"
+          className="border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] w-full"
         />
 
         {/* Days */}
@@ -170,14 +170,14 @@ export default function EditEventPage() {
                 min={todayStr}
                 onChange={(e) => setTfForm((f) => ({ ...f, date: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.date ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`}
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.date ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`}
               />
               <input
                 type="time" value={tfForm.startTime}
                 min={minTime}
                 onChange={(e) => setTfForm((f) => ({ ...f, startTime: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.startTime ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`}
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.startTime ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`}
               />
               <span className="text-gray-400">–</span>
               <input
@@ -185,7 +185,7 @@ export default function EditEventPage() {
                 min={minTime}
                 onChange={(e) => setTfForm((f) => ({ ...f, endTime: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.endTime ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`}
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.endTime ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`}
               />
               <Button onClick={addOrUpdateTimeframe} className="text-xs px-3 py-1.5">
                 {editingTfIdx !== null ? 'Update' : 'Add'}
@@ -203,7 +203,7 @@ export default function EditEventPage() {
           {tfError && <p className="text-xs text-red-500 mt-1">{tfError}</p>}
 
           {timeframes.map((tf, i) => (
-            <div key={i} className="relative flex items-center justify-between border border-[#b0cfe0] rounded px-3 py-2 w-80 mb-1">
+            <div key={i} className="relative flex items-center justify-between border border-[gray-300] rounded px-3 py-2 w-80 mb-1">
               <span className="text-sm text-gray-700">{tf.date} · {tf.startTime} – {tf.endTime}</span>
               <button
                 type="button"

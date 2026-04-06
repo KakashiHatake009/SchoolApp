@@ -113,15 +113,15 @@ export default function SchoolDetailPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">—</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => navigate(`/events/${event.id}`)} className="text-[#4a90b8] underline text-sm cursor-pointer">
+                    <button onClick={() => navigate(`/events/${event.id}`)} className="text-[#1565c0] underline text-sm cursor-pointer">
                       View list
                     </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-gray-500">
-                      <button onClick={() => navigate(`/events/${event.id}`)} className="hover:text-[#4a90b8] cursor-pointer"><Pencil size={15} /></button>
-                      <button className="hover:text-[#4a90b8] cursor-pointer"><Copy size={15} /></button>
-                      <button className="hover:text-[#4a90b8] cursor-pointer"><Link size={15} /></button>
+                      <button onClick={() => navigate(`/events/${event.id}`)} className="hover:text-[#1565c0] cursor-pointer"><Pencil size={15} /></button>
+                      <button className="hover:text-[#1565c0] cursor-pointer"><Copy size={15} /></button>
+                      <button className="hover:text-[#1565c0] cursor-pointer"><Link size={15} /></button>
                       <button onClick={() => setDeleteEventId(event.id)} className="hover:text-red-500 cursor-pointer"><Trash2 size={15} /></button>
                     </div>
                   </td>

@@ -27,6 +27,7 @@ export default function EventDetailPage() {
   const [sendingAll, setSendingAll] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false)
   const [addUploadFileName, setAddUploadFileName] = useState('')
   const [addUploadError, setAddUploadError] = useState('')
   const [addUploadInfo, setAddUploadInfo] = useState('')
@@ -190,7 +191,8 @@ export default function EventDetailPage() {
     queryFn: async () => {
       const token = useAuthStore.getState().token
       const origin = encodeURIComponent(window.location.origin)
-      const res = await fetch(`/api/events/${eventId}/qr?origin=${origin}`, {
+      const apiBase = import.meta.env.VITE_API_URL || ''
+      const res = await fetch(`${apiBase}/api/events/${eventId}/qr?origin=${origin}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error('QR fetch failed')
@@ -225,7 +227,7 @@ export default function EventDetailPage() {
         .label{font-weight:600}
         .qr{margin:24px 0;text-align:center}
         .qr img{width:200px;height:200px}
-        .link{font-size:12px;word-break:break-all;color:#4a90b8;margin-top:10px;text-align:center}
+        .link{font-size:12px;word-break:break-all;color:#1565c0;margin-top:10px;text-align:center}
         @media print{body{padding:24px}}
       </style>
     </head><body>
@@ -270,7 +272,7 @@ export default function EventDetailPage() {
   })
 
   const bulkDeleteMut = useMutation({
-    mutationFn: () => Promise.all([...selectedIds].map((id) => teacherService.delete(id))),
+    mutationFn: () => Promise.allSettled([...selectedIds].map((id) => teacherService.delete(id))),
     onSuccess: () => { invalidateTeachers(); setSelectedIds(new Set()) },
   })
 
@@ -378,12 +380,23 @@ export default function EventDetailPage() {
         <div className="flex flex-col items-end gap-3 flex-shrink-0">
           {/* Toggle */}
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${event.bookingActive ? 'text-[#4a90b8]' : 'text-gray-400'}`}>
+            <span className={`text-sm font-medium ${event.bookingActive ? 'text-[#1565c0]' : 'text-gray-400'}`}>
               {event.bookingActive ? 'Published' : 'Not yet started'}
             </span>
             <button
-              onClick={() => toggleBookingMut.mutate()}
-              className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none ${event.bookingActive ? 'bg-[#4a90b8]' : 'bg-gray-300'}`}
+              onClick={() => {
+                if (event.bookingActive) {
+                  toggleBookingMut.mutate()
+                } else {
+                  const unconfirmed = teachers.filter((t: { bookingStatus: string }) => t.bookingStatus !== 'slots_confirmed' && t.bookingStatus !== 'booked')
+                  if (unconfirmed.length > 0) {
+                    setPublishConfirmOpen(true)
+                  } else {
+                    toggleBookingMut.mutate()
+                  }
+                }
+              }}
+              className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none ${event.bookingActive ? 'bg-[#1565c0]' : 'bg-gray-300'}`}
             >
               <span className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 mt-0.5 ml-0.5 ${event.bookingActive ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -395,7 +408,7 @@ export default function EventDetailPage() {
             <button
               onClick={copyLink}
               title="Copy link"
-              className={`flex-shrink-0 cursor-pointer transition-colors ${linkCopied ? 'text-green-500' : 'text-gray-400 hover:text-[#4a90b8]'}`}
+              className={`flex-shrink-0 cursor-pointer transition-colors ${linkCopied ? 'text-green-500' : 'text-gray-400 hover:text-[#1565c0]'}`}
             >
               {linkCopied ? <Check size={14} /> : <Copy size={14} />}
             </button>
@@ -424,7 +437,7 @@ export default function EventDetailPage() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <h2 className="font-bold text-gray-800">Bookings</h2>
-          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#4a90b8] w-40" />
+          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-40" />
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -501,9 +514,9 @@ export default function EventDetailPage() {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2 text-gray-400">
-                      <button onClick={() => openEditTeacher(t)} className="hover:text-[#4a90b8] cursor-pointer"><Pencil size={14} /></button>
+                      <button onClick={() => openEditTeacher(t)} className="hover:text-[#1565c0] cursor-pointer"><Pencil size={14} /></button>
                       <button onClick={() => setDeleteTeacherId(t.id)} className="hover:text-red-500 cursor-pointer"><Trash2 size={14} /></button>
-                      <button onClick={() => navigate(`/events/${eventId}/bookings/${t.id}`)} className="hover:text-[#4a90b8] cursor-pointer"><Download size={14} /></button>
+                      <button onClick={() => navigate(`/events/${eventId}/bookings/${t.id}`)} className="hover:text-[#1565c0] cursor-pointer"><Download size={14} /></button>
                       <button
                         onClick={() => sendCode(t.id)}
                         title={
@@ -522,7 +535,7 @@ export default function EventDetailPage() {
                             ? 'text-red-500'
                             : !t.email
                             ? 'text-gray-300 cursor-not-allowed'
-                            : 'hover:text-[#4a90b8]'
+                            : 'hover:text-[#1565c0]'
                         }`}
                       >
                         {sentIds.has(t.id)
@@ -562,7 +575,7 @@ export default function EventDetailPage() {
                 type="button"
                 onClick={() => addUploadRef.current?.click()}
                 disabled={addUploading}
-                className="flex-1 border border-dashed border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-500 hover:border-[#4a90b8] hover:text-[#4a90b8] text-left cursor-pointer transition-colors disabled:opacity-50"
+                className="flex-1 border border-dashed border-[gray-300] rounded px-3 py-2 text-sm text-gray-500 hover:border-[#1565c0] hover:text-[#1565c0] text-left cursor-pointer transition-colors disabled:opacity-50"
               >
                 {addUploading ? 'Uploading…' : addUploadFileName || 'Click to upload .xlsx / .xls / .ods'}
               </button>
@@ -703,7 +716,7 @@ export default function EventDetailPage() {
               {/* Updated teachers */}
               {uploadPreview.toUpdate.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-[#4a90b8] uppercase tracking-wide mb-2">
+                  <p className="text-xs font-semibold text-[#1565c0] uppercase tracking-wide mb-2">
                     {uploadPreview.toUpdate.length} teacher{uploadPreview.toUpdate.length > 1 ? 's' : ''} will be updated
                   </p>
                   <div className="space-y-2">
@@ -742,6 +755,37 @@ export default function EventDetailPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Publish confirmation when teachers are unconfirmed */}
+      <Modal open={publishConfirmOpen} onClose={() => setPublishConfirmOpen(false)} title="Publish event?">
+        <div className="text-sm text-gray-600 mb-4">
+          <p className="mb-3">The following teachers have <strong>not confirmed</strong> their time slots. Their slots will be fully available for booking.</p>
+          <ul className="space-y-1 mb-3">
+            {teachers
+              .filter((t: { bookingStatus: string }) => t.bookingStatus !== 'slots_confirmed' && t.bookingStatus !== 'booked')
+              .map((t: { id: string; salutation: string; firstName: string; surname: string; salutation2?: string; firstName2?: string; surname2?: string }) => (
+                <li key={t.id} className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <span>{t.salutation} {t.firstName} {t.surname}</span>
+                  {t.firstName2 && t.surname2 && (
+                    <span className="text-gray-400">+ {t.salutation2} {t.firstName2} {t.surname2}</span>
+                  )}
+                </li>
+              ))}
+          </ul>
+          <p className="text-amber-600 font-medium">Do you still want to publish?</p>
+        </div>
+        <div className="flex justify-center gap-3">
+          <Button variant="secondary" onClick={() => setPublishConfirmOpen(false)}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={() => { setPublishConfirmOpen(false); toggleBookingMut.mutate() }}
+            loading={toggleBookingMut.isPending}
+          >
+            PUBLISH ANYWAY
+          </Button>
+        </div>
       </Modal>
 
       <ConfirmModal

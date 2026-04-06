@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -73,6 +73,11 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" loading={loading}>
             Sign In
           </Button>
+          <div className="text-center">
+            <Link to="/forgot-password" className="text-xs text-gray-500 hover:text-[#1565c0]">
+              Forgot password?
+            </Link>
+          </div>
         </form>
 
         {/* Dev hints */}

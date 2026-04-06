@@ -14,7 +14,7 @@ const Field = ({ placeholder, value, onChange, type = 'text', className = '' }: 
     placeholder={placeholder}
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className={`border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#4a90b8] ${className}`}
+    className={`border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] ${className}`}
   />
 )
 
@@ -116,7 +116,7 @@ export default function EditSchoolPage() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="w-9 h-9 rounded-full bg-[#4a90b8] text-white flex items-center justify-center hover:bg-[#3a7a9e] cursor-pointer flex-shrink-0"
+            className="w-9 h-9 rounded-full bg-[#1565c0] text-white flex items-center justify-center hover:bg-[#3a7a9e] cursor-pointer flex-shrink-0"
           >
             <Plus size={16} />
           </button>

@@ -17,7 +17,7 @@ const BREAK_OPTS = ['0', '5', '10', '15'].map((v) => ({ value: v, label: v === '
 const FInput = ({ placeholder, value, onChange, className = '', textarea = false }: {
   placeholder: string; value: string; onChange: (v: string) => void; className?: string; textarea?: boolean
 }) => {
-  const cls = `border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#4a90b8] w-full ${className}`
+  const cls = `border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] w-full ${className}`
   return textarea
     ? <textarea placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} rows={4} className={cls} />
     : <input placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className={cls} />
@@ -29,7 +29,7 @@ const FSelect = ({ placeholder, value, onChange, options }: {
   <select
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#4a90b8] w-full bg-white"
+    className="border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#1565c0] w-full bg-white"
   >
     <option value="">{placeholder}</option>
     {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -284,7 +284,7 @@ export default function CreateEventPage() {
 
         <div className="flex items-center gap-3 mb-3">
           <h2 className="font-bold text-gray-800">Added teachers</h2>
-          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#4a90b8] w-40" />
+          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-40" />
         </div>
 
         <div className="border border-gray-200 rounded overflow-x-auto mb-10">
@@ -363,16 +363,16 @@ export default function CreateEventPage() {
               <input type="date" value={tfForm.date} min={todayStr}
                 onChange={(e) => setTfForm((f) => ({ ...f, date: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.date ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`} />
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.date ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`} />
               <input type="time" value={tfForm.startTime} min={minTime}
                 onChange={(e) => setTfForm((f) => ({ ...f, startTime: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.startTime ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`} />
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.startTime ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`} />
               <span className="text-gray-400">–</span>
               <input type="time" value={tfForm.endTime} min={minTime}
                 onChange={(e) => setTfForm((f) => ({ ...f, endTime: e.target.value }))}
                 onClick={openPicker}
-                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.endTime ? 'border-red-400 bg-red-50' : 'border-[#b0cfe0] focus:border-[#4a90b8]'}`} />
+                className={`rounded px-2 py-1.5 text-sm focus:outline-none cursor-pointer border ${tfAttempted && !tfForm.endTime ? 'border-red-400 bg-red-50' : 'border-[gray-300] focus:border-[#1565c0]'}`} />
               <Button onClick={addTimeframe} className="text-xs px-3 py-1.5">{editingTfIdx !== null ? 'Update' : 'Add'}</Button>
             </div>
           )
@@ -380,7 +380,7 @@ export default function CreateEventPage() {
         {tfError && <p className="text-xs text-red-500">{tfError}</p>}
 
         {timeframes.map((tf, i) => (
-          <div key={i} className="relative flex items-center justify-between border border-[#b0cfe0] rounded px-3 py-2 w-72">
+          <div key={i} className="relative flex items-center justify-between border border-[gray-300] rounded px-3 py-2 w-72">
             <span className="text-sm text-gray-700">{tf.date} {tf.startTime} - {tf.endTime}</span>
             <button
               type="button"
@@ -416,13 +416,13 @@ export default function CreateEventPage() {
             placeholder="Upload teachers list"
             readOnly
             value={uploadFileName}
-            className="border border-[#b0cfe0] rounded px-3 py-2 text-sm text-gray-600 flex-1 cursor-pointer"
+            className="border border-[gray-300] rounded px-3 py-2 text-sm text-gray-600 flex-1 cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-9 h-9 rounded-full bg-[#4a90b8] text-white flex items-center justify-center hover:bg-[#3a7a9e] cursor-pointer flex-shrink-0"
+            className="w-9 h-9 rounded-full bg-[#1565c0] text-white flex items-center justify-center hover:bg-[#3a7a9e] cursor-pointer flex-shrink-0"
           >
             <Plus size={16} />
           </button>
@@ -438,7 +438,7 @@ export default function CreateEventPage() {
         <button
           type="button"
           onClick={downloadTemplate}
-          className="text-xs text-[#4a90b8] underline hover:text-[#3a7a9e] cursor-pointer w-fit"
+          className="text-xs text-[#1565c0] underline hover:text-[#3a7a9e] cursor-pointer w-fit"
         >
           Download teachers list template (.xlsx)
         </button>
@@ -457,39 +457,39 @@ export default function CreateEventPage() {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">1. Pädagog:in</p>
               <div className="flex gap-2 flex-wrap">
                 <input placeholder="Klasse" value={teacherRow.klasse} onChange={(e) => setTeacherRow((t) => ({ ...t, klasse: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] w-20" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] w-20" />
                 <input placeholder="Raum" value={teacherRow.roomNo} onChange={(e) => setTeacherRow((t) => ({ ...t, roomNo: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] w-20" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] w-20" />
                 <select value={teacherRow.salutation} onChange={(e) => setTeacherRow((t) => ({ ...t, salutation: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm bg-white focus:outline-none focus:border-[#4a90b8]">
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm bg-white focus:outline-none focus:border-[#1565c0]">
                   <option value="Hr.">Hr.</option>
                   <option value="Fr.">Fr.</option>
                 </select>
                 <input placeholder="Titel" value={teacherRow.titel} onChange={(e) => setTeacherRow((t) => ({ ...t, titel: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] w-20" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] w-20" />
                 <input placeholder="Vorname" value={teacherRow.firstName} onChange={(e) => setTeacherRow((t) => ({ ...t, firstName: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
                 <input placeholder="Nachname" value={teacherRow.surname} onChange={(e) => setTeacherRow((t) => ({ ...t, surname: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
                 <input placeholder="Arbeits-E-Mail" value={teacherRow.email} onChange={(e) => setTeacherRow((t) => ({ ...t, email: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
               </div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">2. Pädagog:in </p>
               <div className="flex gap-2 flex-wrap">
                 <select value={teacherRow.salutation2} onChange={(e) => setTeacherRow((t) => ({ ...t, salutation2: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm bg-white focus:outline-none focus:border-[#4a90b8]">
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm bg-white focus:outline-none focus:border-[#1565c0]">
                   <option value="">—</option>
                   <option value="Hr.">Hr.</option>
                   <option value="Fr.">Fr.</option>
                 </select>
                 <input placeholder="Titel" value={teacherRow.titel2} onChange={(e) => setTeacherRow((t) => ({ ...t, titel2: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] w-20" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] w-20" />
                 <input placeholder="Vorname" value={teacherRow.firstName2} onChange={(e) => setTeacherRow((t) => ({ ...t, firstName2: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
                 <input placeholder="Nachname" value={teacherRow.surname2} onChange={(e) => setTeacherRow((t) => ({ ...t, surname2: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
                 <input placeholder="Arbeits-E-Mail" value={teacherRow.email2} onChange={(e) => setTeacherRow((t) => ({ ...t, email2: e.target.value }))}
-                  className="border border-[#b0cfe0] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#4a90b8] flex-1" />
+                  className="border border-[gray-300] rounded px-2 py-2 text-sm focus:outline-none focus:border-[#1565c0] flex-1" />
                 <Button onClick={addTeacher} className="text-xs px-3 py-1.5">Add</Button>
               </div>
             </div>

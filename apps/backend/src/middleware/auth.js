@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '../lib/tokens.js';
 
 // ── Extract user object from JWT payload ────────────────────────────────────
 function extractUser(payload) {
@@ -21,7 +22,7 @@ export const requireAuth = (req, res, next) => {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        const payload = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+        const payload = verifyAccessToken(auth.slice(7));
         req.user = extractUser(payload);
         next();
     } catch {

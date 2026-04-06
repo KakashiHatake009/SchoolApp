@@ -5,6 +5,8 @@ import { ProtectedRoute } from '@/router/ProtectedRoute'
 
 // Pages — Auth
 import LoginPage from '@/features/auth/LoginPage'
+import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
+import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 
 // Pages — Parent (public)
 import BookingPage from '@/features/parent/BookingPage'
@@ -36,6 +38,8 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/book/:eventId" element={<BookingPage />} />
           <Route path="/cancel/:cancelToken" element={<CancelPage />} />
           <Route path="/manage/:eventId" element={<TeacherManagePage />} />
