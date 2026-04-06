@@ -7,6 +7,7 @@ CREATE TABLE "User" (
     "role" TEXT NOT NULL,
     "schoolId" TEXT,
     "teacherId" TEXT,
+    "tokenVersion" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -57,6 +58,17 @@ CREATE TABLE "Event" (
 );
 
 -- CreateTable
+CREATE TABLE "EventDay" (
+    "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "date" TEXT NOT NULL,
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT NOT NULL,
+
+    CONSTRAINT "EventDay_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Teacher" (
     "id" TEXT NOT NULL,
     "schoolId" TEXT NOT NULL,
@@ -75,6 +87,12 @@ CREATE TABLE "Teacher" (
     "email2" TEXT,
     "bookingStatus" TEXT NOT NULL DEFAULT 'not_booked',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "accessCode" TEXT,
+    "accessCodeExpires" TIMESTAMP(3),
+    "accessCode2" TEXT,
+    "accessCode2Expires" TIMESTAMP(3),
+    "teacher1Confirmed" BOOLEAN NOT NULL DEFAULT false,
+    "teacher2Confirmed" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Teacher_pkey" PRIMARY KEY ("id")
@@ -88,6 +106,8 @@ CREATE TABLE "Slot" (
     "time" TEXT NOT NULL,
     "date" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'available',
+    "teacher1Present" BOOLEAN,
+    "teacher2Present" BOOLEAN,
 
     CONSTRAINT "Slot_pkey" PRIMARY KEY ("id")
 );
@@ -129,6 +149,9 @@ CREATE UNIQUE INDEX "Booking_cancelToken_key" ON "Booking"("cancelToken");
 ALTER TABLE "Event" ADD CONSTRAINT "Event_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "EventDay" ADD CONSTRAINT "EventDay_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Teacher" ADD CONSTRAINT "Teacher_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -142,3 +165,4 @@ ALTER TABLE "Booking" ADD CONSTRAINT "Booking_eventId_fkey" FOREIGN KEY ("eventI
 
 -- AddForeignKey
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "Slot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
