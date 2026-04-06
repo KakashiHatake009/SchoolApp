@@ -137,8 +137,6 @@ export const updateSlot = async (req, res) => {
             where: { id: req.params.id },
             data: { status: newStatus },
         });
-
-        const updated = await prisma.slot.update({ where: { id: req.params.id }, data });
         res.json(updated);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Slot not found' });
@@ -160,19 +158,3 @@ export const deleteSlot = async (req, res) => {
     }
 };
 
-// GET /api/slots?teacherId= — flat route for teacher slot view
-export const getSlotsByTeacher = async (req, res) => {
-    try {
-        const { teacherId } = req.query;
-        if (!teacherId) return res.status(400).json({ error: 'teacherId is required' });
-
-        const slots = await prisma.slot.findMany({
-            where: { teacherId, isActive: true },
-            orderBy: [{ date: 'asc' }, { time: 'asc' }],
-        });
-
-        res.json(slots);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};

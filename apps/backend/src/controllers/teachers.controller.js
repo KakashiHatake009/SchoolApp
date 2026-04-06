@@ -80,8 +80,6 @@ export const updateTeacher = async (req, res) => {
             where: { id: req.params.id },
             data: updateData,
         });
-
-        const teacher = await prisma.teacher.update({ where: { id: req.params.id }, data });
         res.json(teacher);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Teacher not found' });

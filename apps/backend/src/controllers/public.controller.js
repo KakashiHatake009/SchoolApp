@@ -501,24 +501,3 @@ export const toggleSlotForTeacher = async (req, res) => {
     }
 };
 
-// GET /api/public/events/by-qr/:qrToken/teachers
-export const getPublicTeachers = async (req, res) => {
-    try {
-        const event = await prisma.event.findUnique({
-            where: { qrToken: req.params.qrToken, isActive: true },
-            select: { id: true },
-        });
-
-        if (!event) return res.status(404).json({ error: 'Event not found' });
-
-        const teachers = await prisma.teacher.findMany({
-            where: { eventId: event.id, isActive: true },
-            select: { id: true, salutation: true, firstName: true, surname: true, roomNo: true },
-            orderBy: { surname: 'asc' },
-        });
-
-        res.json(teachers);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};

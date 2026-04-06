@@ -60,8 +60,6 @@ export const updateSchool = async (req, res) => {
             where: { id: req.params.id },
             data: req.body,
         });
-
-        const school = await prisma.school.update({ where: { id: req.params.id }, data });
         res.json(school);
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'School not found' });
