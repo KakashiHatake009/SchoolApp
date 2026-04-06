@@ -78,7 +78,7 @@ export default function DashboardPage() {
             value={schoolSearch}
             onChange={(e) => setSchoolSearch(e.target.value)}
             placeholder="search"
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-full sm:w-48"
           />
         </div>
 
@@ -121,16 +121,16 @@ export default function DashboardPage() {
             value={eventSearch}
             onChange={(e) => setEventSearch(e.target.value)}
             placeholder="search"
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-full sm:w-48"
           />
         </div>
 
-        <div className="border border-gray-200 rounded overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="border border-gray-200 rounded overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-[#dde8ee] text-gray-700">
                 {['Schoolname ↓', 'Event ↓', 'Date ↓', 'Time', 'Booking status ↓', 'Event status ↓', 'Teachers list', 'Quickaction'].map(
-                  (h) => <th key={h} className="px-4 py-3 text-left font-medium text-sm">{h}</th>,
+                  (h) => <th key={h} className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-xs sm:text-sm">{h}</th>,
                 )}
               </tr>
             </thead>

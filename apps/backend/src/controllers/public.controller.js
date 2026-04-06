@@ -5,7 +5,7 @@ import prisma from '../config/prisma.js';
 // eventId → Set of SSE response objects for teachers watching that event
 const sseClients = new Map();
 
-function broadcastSlotUpdate(eventId, slot) {
+export function broadcastSlotUpdate(eventId, slot) {
     const listeners = sseClients.get(eventId);
     if (!listeners?.size) return;
     const msg = `data: ${JSON.stringify(slot)}\n\n`;

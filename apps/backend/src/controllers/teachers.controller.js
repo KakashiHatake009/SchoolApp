@@ -150,7 +150,11 @@ export const deleteTeacher = async (req, res) => {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        await prisma.teacher.delete({ where: { id: req.params.id } });
+        await prisma.$transaction([
+            prisma.booking.deleteMany({ where: { slot: { teacherId: req.params.id } } }),
+            prisma.slot.deleteMany({ where: { teacherId: req.params.id } }),
+            prisma.teacher.delete({ where: { id: req.params.id } }),
+        ]);
         res.status(204).end();
     } catch (err) {
         if (err.code === 'P2025') return res.status(404).json({ error: 'Teacher not found' });

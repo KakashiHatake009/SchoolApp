@@ -21,7 +21,7 @@ export async function sendOtpEmail(email, code, eventTitle) {
 
 // ── Booking confirmation email ────────────────────────────────────────────────
 
-export async function sendBookingConfirmation(email, { parentName, eventName, schoolName, slotDate, slotTime, teacherName, roomNo, cancelToken, appBaseUrl }) {
+export async function sendBookingConfirmation(email, { parentName, eventName, schoolName, slotDate, slotTime, teacherName, roomNo, note, cancelToken, appBaseUrl }) {
     const base = appBaseUrl || process.env.APP_BASE_URL || 'http://localhost:3001';
     const cancelUrl = `${base}/cancel/${cancelToken}`;
 
@@ -38,6 +38,7 @@ ${teacherName ? `Lehrkraft: ${teacherName}` : ''}
 ${roomNo ? `Raum: ${roomNo}` : ''}
 ${slotDate ? `Datum: ${slotDate}` : ''}
 ${slotTime ? `Zeit: ${slotTime}` : ''}
+${note ? `Nachricht: ${note}` : ''}
 
 Bitte seien Sie pünktlich. Sie können 5 Minuten vor Ihrem Termin das Schulgebäude betreten.
 
@@ -55,6 +56,7 @@ Termin absagen oder ändern: ${cancelUrl}
                         ${roomNo ? `<tr><td style="padding:3px 16px 3px 0;color:#666">Raum</td><td>${roomNo}</td></tr>` : ''}
                         ${slotDate ? `<tr><td style="padding:3px 16px 3px 0;color:#666">Datum</td><td>${slotDate}</td></tr>` : ''}
                         ${slotTime ? `<tr><td style="padding:3px 16px 3px 0;color:#666">Zeit</td><td>${slotTime}</td></tr>` : ''}
+                        ${note ? `<tr><td style="padding:3px 16px 3px 0;color:#666">Nachricht</td><td>${note}</td></tr>` : ''}
                     </table>
                 </div>
                 <div style="background:#dde8ee;border-radius:6px;padding:24px;margin-top:12px;font-size:14px;color:#444">
