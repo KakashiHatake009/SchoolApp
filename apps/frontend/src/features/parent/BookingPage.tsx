@@ -52,12 +52,12 @@ function PageShell({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
-        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain" />
+        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain shrink-0" />
         <span className="text-base text-gray-500">{navTitle}</span>
         <span className="text-sm text-gray-400 cursor-pointer hover:text-gray-600">Language</span>
       </header>
 
-      <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto">
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 w-full max-w-5xl mx-auto">
         {schoolName && (
           <div className="flex justify-between items-start mb-6">
             <div className="flex-1 pr-4">
@@ -70,7 +70,7 @@ function PageShell({
               )}
             </div>
             {schoolLogo ? (
-              <img src={schoolLogo} alt={schoolName} className="w-20 h-20 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+              <img src={schoolLogo} alt={schoolName} className="w-20 h-20 rounded-full object-contain p-1 border border-gray-200 flex-shrink-0" />
             ) : (
               <div className="w-20 h-20 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-xs text-gray-400 flex-shrink-0">
                 Logo
@@ -81,9 +81,7 @@ function PageShell({
         {children}
       </main>
 
-      <footer className="px-6 py-4">
-        <span className="text-sm text-gray-400">Logout</span>
-      </footer>
+      <footer className="px-6 py-4" />
     </div>
   )
 }
@@ -506,12 +504,12 @@ export default function BookingPage() {
           >›</button>
         </div>
 
-        <div className="flex gap-4 items-start">
+        <div className="flex flex-col sm:flex-row gap-4 items-start">
           {/* Calendar grid */}
-          <div className="flex-1 rounded overflow-hidden">
+          <div className="flex-1 w-full rounded overflow-hidden">
             <div
               className="grid bg-[#dde8ee] rounded-t justify-center"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {weekDates.map((date) => {
                 const d = new Date(date)
@@ -527,7 +525,7 @@ export default function BookingPage() {
 
             <div
               className="grid overflow-y-auto max-h-96 justify-center items-start"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {weekDates.map((date) => (
                 <div key={date} className="flex flex-col items-center">
@@ -540,7 +538,7 @@ export default function BookingPage() {
                     const labelColor = (v: boolean | null | undefined) =>
                       v === false ? 'text-red-500' : 'text-green-600'
                     return (
-                      <div key={slot.id} className="py-1 px-1 flex flex-col items-center gap-0.5">
+                      <div key={slot.id} className="py-1.5 px-1 flex flex-col items-center gap-0.5">
                         <button
                           disabled={isUnavailable}
                           onClick={() => !isUnavailable && setSelectedSlot(isSelected ? null : slot)}
@@ -586,7 +584,7 @@ export default function BookingPage() {
           </div>
 
           {/* Legend — side panel */}
-          <div className="w-48 shrink-0 text-xs border border-gray-200 rounded-lg p-3 space-y-3">
+          <div className="hidden sm:block w-48 shrink-0 text-xs border border-gray-200 rounded-lg p-3 space-y-3">
             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Legende</p>
 
             <div>
@@ -858,12 +856,12 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
-        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain" />
+        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain shrink-0" />
         <span className="text-base text-gray-500">Ihre Buchungsdetails</span>
         <span className="text-sm text-gray-400 cursor-pointer hover:text-gray-600">Language</span>
       </header>
 
-      <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto">
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 w-full max-w-5xl mx-auto">
         <div className="bg-[#1565c0] text-white text-center font-bold py-4 px-6 rounded mb-8">
           Ihr Termin zum {eventName} der {schoolName} wurde bestätigt.
         </div>
@@ -915,9 +913,7 @@ export default function BookingPage() {
         </div>
       </main>
 
-      <footer className="px-6 py-4">
-        <span className="text-sm text-gray-400">Logout</span>
-      </footer>
+      <footer className="px-6 py-4" />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Pencil, Trash2, Download, Mail, CheckCheck, Copy, Check, AlertCircle } 
 import { eventService } from '@/services/eventService'
 import { teacherService } from '@/services/teacherService'
 import { schoolService } from '@/services/schoolService'
+import { bookingService } from '@/services/bookingService'
 import { Button } from '@/components/ui/Button'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Modal } from '@/components/ui/Modal'
@@ -250,6 +251,29 @@ export default function EventDetailPage() {
 
   const invalidateTeachers = () => qc.invalidateQueries({ queryKey: ['teachers', eventId] })
 
+  const downloadBookings = async () => {
+    if (!eventId) return
+    const bookings = await bookingService.getByEvent(eventId)
+    const rows = bookings.map((b: { slot?: { date?: string; time?: string; teacher?: { salutation?: string; firstName?: string; surname?: string } }; parentFirstName?: string; parentSurname?: string; parentEmail?: string; phone?: string; childName?: string; childClass?: string; numberOfPersons?: number; note?: string; status?: string; bookedAt?: string }) => ({
+      Date: b.slot?.date ?? '',
+      Time: b.slot?.time ?? '',
+      Teacher: b.slot?.teacher ? `${b.slot.teacher.salutation} ${b.slot.teacher.firstName} ${b.slot.teacher.surname}` : '',
+      'Parent Name': `${b.parentFirstName ?? ''} ${b.parentSurname ?? ''}`.trim(),
+      Email: b.parentEmail ?? '',
+      Phone: b.phone ?? '',
+      Child: b.childName ?? '',
+      Class: b.childClass ?? '',
+      Persons: b.numberOfPersons ?? 1,
+      Note: b.note ?? '',
+      Status: b.status ?? '',
+      'Booked At': b.bookedAt ?? '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Bookings')
+    XLSX.writeFile(wb, `bookings_${event?.name ?? eventId}.xlsx`)
+  }
+
   const toggleBookingMut = useMutation({
     mutationFn: () => event?.bookingActive
       ? eventService.unpublish(eventId!)
@@ -257,6 +281,7 @@ export default function EventDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event', eventId] })
       qc.invalidateQueries({ queryKey: ['events-all'] })
+      invalidateTeachers()
       if (event?.schoolId) qc.invalidateQueries({ queryKey: ['events', event.schoolId] })
     },
   })
@@ -268,12 +293,21 @@ export default function EventDetailPage() {
 
   const deleteTeacherMut = useMutation({
     mutationFn: (id: string) => teacherService.delete(id),
-    onSuccess: () => { invalidateTeachers(); setDeleteTeacherId(null) },
+    onSuccess: async () => { invalidateTeachers(); setDeleteTeacherId(null); await unpublishIfEmpty() },
   })
+
+  const unpublishIfEmpty = async () => {
+    const remaining = await teacherService.getByEvent(eventId!)
+    if (remaining.length === 0 && event?.bookingActive) {
+      await eventService.unpublish(eventId!)
+      qc.invalidateQueries({ queryKey: ['event', eventId] })
+      qc.invalidateQueries({ queryKey: ['events-all'] })
+    }
+  }
 
   const bulkDeleteMut = useMutation({
     mutationFn: () => Promise.allSettled([...selectedIds].map((id) => teacherService.delete(id))),
-    onSuccess: () => { invalidateTeachers(); setSelectedIds(new Set()) },
+    onSuccess: async () => { invalidateTeachers(); setSelectedIds(new Set()); await unpublishIfEmpty() },
   })
 
   const toggleSelect = (id: string) =>
@@ -349,35 +383,35 @@ export default function EventDetailPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="max-w-2xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+        <div className="w-full sm:max-w-2xl">
           <p className="font-bold text-gray-800 mb-2">
             {schoolName}: Event "{event.name}"
           </p>
           {event.description && (
             <p className="text-sm text-gray-600 mb-3 leading-relaxed">{event.description}</p>
           )}
-          <div className="flex gap-6 text-sm text-gray-700 mb-4 flex-wrap items-start">
+          <div className="text-sm text-gray-700 mb-4 space-y-1">
             <div>
-              <span className="font-semibold">Days:</span>{' '}
-              {event.days && event.days.length > 0
-                ? (
-                  <span className="inline-flex flex-col gap-0.5 ml-1">
-                    {event.days.map((d) => (
-                      <span key={d.id} className="text-gray-600">{d.date} · {d.startTime}–{d.endTime}</span>
-                    ))}
-                  </span>
-                )
-                : <span className="text-gray-600">{event.date} · {event.startTime}–{event.endTime}</span>
-              }
+              <span className="font-semibold">Days:</span>
+              <div className="mt-1 space-y-0.5 text-gray-600 text-xs sm:text-sm">
+                {event.days && event.days.length > 0
+                  ? event.days.map((d) => (
+                      <div key={d.id}>{d.date} · {d.startTime}–{d.endTime}</div>
+                    ))
+                  : <div>{event.date} · {event.startTime}–{event.endTime}</div>
+                }
+              </div>
             </div>
-            <p><span className="font-semibold">Sessions:</span> {event.sessionLength}min</p>
-            <p><span className="font-semibold">Breaks:</span> {event.breakLength}min</p>
+            <div className="flex gap-4 pt-1">
+              <p><span className="font-semibold">Sessions:</span> {event.sessionLength}min</p>
+              <p><span className="font-semibold">Breaks:</span> {event.breakLength}min</p>
+            </div>
           </div>
         </div>
 
         {/* Right: booking toggle + link + QR + PDF */}
-        <div className="flex flex-col items-end gap-3 flex-shrink-0">
+        <div className="flex flex-col items-start sm:items-end gap-3 flex-shrink-0 w-full sm:w-auto">
           {/* Toggle */}
           <div className="flex items-center gap-2">
             <span className={`text-sm font-medium ${event.bookingActive ? 'text-[#1565c0]' : 'text-gray-400'}`}>
@@ -434,12 +468,12 @@ export default function EventDetailPage() {
       </div>
 
       {/* Bookings / Teachers table */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <h2 className="font-bold text-gray-800">Bookings</h2>
-          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-40" />
+          <input placeholder="search" className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-full sm:w-40" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={sendAllCodes}
             loading={sendingAll}
@@ -447,7 +481,7 @@ export default function EventDetailPage() {
           >
             SEND CODES
           </Button>
-          <Button onClick={() => { setAddTeacherOpen(true); setSubmitted(false) }} className="text-xs tracking-widest uppercase px-4 py-2">
+          <Button onClick={() => { setAddTeacherOpen(true); setSubmitted(false); setAddUploadInfo(''); setAddUploadError(''); setAddUploadFileName('') }} className="text-xs tracking-widest uppercase px-4 py-2">
             ADD TEACHER
           </Button>
           {selectedIds.size > 0 && (
@@ -463,7 +497,7 @@ export default function EventDetailPage() {
       </div>
 
       <div className="border border-gray-200 rounded overflow-x-auto mb-4">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="bg-[#dde8ee] text-gray-700">
               <th className="px-3 py-3 w-8">
@@ -554,7 +588,7 @@ export default function EventDetailPage() {
       </div>
 
       <div className="flex justify-end">
-        <Button className="text-xs tracking-widest uppercase px-4 py-2">DOWNLOAD BOOKINGS</Button>
+        <Button onClick={downloadBookings} className="text-xs tracking-widest uppercase px-4 py-2">DOWNLOAD BOOKINGS</Button>
       </div>
 
       {/* Add Teacher Modal */}
@@ -605,7 +639,7 @@ export default function EventDetailPage() {
 
           {/* Teacher 1 */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teacher 1</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Select options={[{ value: '', label: 'Salutation' }, { value: 'Hr.', label: 'Hr.' }, { value: 'Fr.', label: 'Fr.' }]} value={teacherForm.salutation} onChange={(e) => setTeacherForm((f) => ({ ...f, salutation: e.target.value }))} />
             <Input placeholder="Title (e.g. Dr.)" value={teacherForm.titel} onChange={(e) => setTeacherForm((f) => ({ ...f, titel: e.target.value }))} />
             <Input placeholder="First name" value={teacherForm.firstName} onChange={(e) => setTeacherForm((f) => ({ ...f, firstName: e.target.value }))} error={submitted && !teacherForm.firstName.trim() ? ' ' : undefined} />
@@ -615,7 +649,7 @@ export default function EventDetailPage() {
 
           {/* Teacher 2 */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teacher 2 <span className="normal-case font-normal text-gray-400">(optional)</span></p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Select options={[{ value: '', label: 'Salutation' }, { value: 'Hr.', label: 'Hr.' }, { value: 'Fr.', label: 'Fr.' }]} value={teacherForm.salutation2} onChange={(e) => setTeacherForm((f) => ({ ...f, salutation2: e.target.value }))} />
             <Input placeholder="Title (e.g. Dr.)" value={teacherForm.titel2} onChange={(e) => setTeacherForm((f) => ({ ...f, titel2: e.target.value }))} />
             <Input placeholder="First name" value={teacherForm.firstName2} onChange={(e) => setTeacherForm((f) => ({ ...f, firstName2: e.target.value }))} />
@@ -647,7 +681,7 @@ export default function EventDetailPage() {
 
           {/* Teacher 1 */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teacher 1</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Select options={[{ value: '', label: 'Salutation' }, { value: 'Hr.', label: 'Hr.' }, { value: 'Fr.', label: 'Fr.' }]} value={teacherForm.salutation} onChange={(e) => setTeacherForm((f) => ({ ...f, salutation: e.target.value }))} />
             <Input placeholder="Title (e.g. Dr.)" value={teacherForm.titel} onChange={(e) => setTeacherForm((f) => ({ ...f, titel: e.target.value }))} />
             <Input placeholder="First name" value={teacherForm.firstName} onChange={(e) => setTeacherForm((f) => ({ ...f, firstName: e.target.value }))} error={submitted && !teacherForm.firstName.trim() ? ' ' : undefined} />
@@ -657,7 +691,7 @@ export default function EventDetailPage() {
 
           {/* Teacher 2 */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teacher 2 <span className="normal-case font-normal text-gray-400">(optional)</span></p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Select options={[{ value: '', label: 'Salutation' }, { value: 'Hr.', label: 'Hr.' }, { value: 'Fr.', label: 'Fr.' }]} value={teacherForm.salutation2} onChange={(e) => setTeacherForm((f) => ({ ...f, salutation2: e.target.value }))} />
             <Input placeholder="Title (e.g. Dr.)" value={teacherForm.titel2} onChange={(e) => setTeacherForm((f) => ({ ...f, titel2: e.target.value }))} />
             <Input placeholder="First name" value={teacherForm.firstName2} onChange={(e) => setTeacherForm((f) => ({ ...f, firstName2: e.target.value }))} />

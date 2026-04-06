@@ -341,7 +341,7 @@ export default function CreateEventPage() {
       </div>
 
       <div className="space-y-3">
-        <FInput placeholder="Event title" value={form.name} onChange={ff('name')} className="w-72" />
+        <FInput placeholder="Event title" value={form.name} onChange={ff('name')} className="w-full max-w-72" />
         <FInput placeholder="Description" value={form.description} onChange={ff('description')} textarea />
 
         {/* Timeframes */}
@@ -380,7 +380,7 @@ export default function CreateEventPage() {
         {tfError && <p className="text-xs text-red-500">{tfError}</p>}
 
         {timeframes.map((tf, i) => (
-          <div key={i} className="relative flex items-center justify-between border border-[gray-300] rounded px-3 py-2 w-72">
+          <div key={i} className="relative flex items-center justify-between border border-[gray-300] rounded px-3 py-2 w-full max-w-72">
             <span className="text-sm text-gray-700">{tf.date} {tf.startTime} - {tf.endTime}</span>
             <button
               type="button"

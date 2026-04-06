@@ -10,10 +10,10 @@ function Layout() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <TopNavbar title={title} />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 sm:px-8 py-4 sm:py-8">
         <Outlet />
       </main>
-      <footer className="px-8 py-4">
+      <footer className="px-4 sm:px-8 py-4">
         <button
           onClick={logout}
           className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import * as XLSX from 'xlsx'
 import { eventService } from '@/services/eventService'
 import { teacherService } from '@/services/teacherService'
 import { bookingService } from '@/services/bookingService'
@@ -63,21 +64,21 @@ export default function TeacherBookingsPage() {
         {schoolName}: Event "{eventName}" - {teacherName}
       </p>
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <h2 className="font-bold text-gray-800">Bookings</h2>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="search"
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-48"
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1565c0] w-full sm:w-48"
         />
       </div>
 
       {isLoading ? (
         <p className="text-gray-400 text-sm">Loading…</p>
       ) : (
-        <div className="border border-gray-200 rounded overflow-hidden mb-8">
-          <table className="w-full text-sm">
+        <div className="border border-gray-200 rounded overflow-x-auto mb-8">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-[#dde8ee] text-gray-700">
                 {['Time', 'Slts.', 'Parent ↓', 'Child ↓', 'Class', 'Phone', 'Email', 'No. of persons', 'Note'].map(
@@ -107,11 +108,27 @@ export default function TeacherBookingsPage() {
         </div>
       )}
 
-      <div className="flex justify-between">
+      <div className="flex flex-col sm:flex-row justify-between gap-3">
         <Button onClick={() => navigate(`/events/${eventId}`)} className="px-8 py-3 text-xs tracking-widest uppercase">
           BACK
         </Button>
-        <Button className="px-8 py-3 text-xs tracking-widest uppercase">
+        <Button onClick={() => {
+          const rows = enriched.map((b) => ({
+            Time: b.time,
+            Salutation: b.salutation ?? '',
+            'Parent Name': `${b.parentFirstName ?? ''} ${b.parentSurname}`.trim(),
+            Child: b.childName ?? '',
+            Class: b.childClass ?? '',
+            Phone: b.phone ?? '',
+            Email: b.parentEmail,
+            Persons: b.numberOfPersons,
+            Note: b.note ?? '',
+          }))
+          const ws = XLSX.utils.json_to_sheet(rows)
+          const wb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(wb, ws, 'Bookings')
+          XLSX.writeFile(wb, `bookings_${teacherName}_${eventName}.xlsx`)
+        }} className="px-8 py-3 text-xs tracking-widest uppercase">
           DOWNLOAD BOOKINGS
         </Button>
       </div>

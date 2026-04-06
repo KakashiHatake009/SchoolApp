@@ -79,22 +79,22 @@ export default function CreateSchoolPage() {
 
       <div className="space-y-3">
         {/* Row 1 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field placeholder="School name" value={form.name} onChange={ff('name')} />
           <Field placeholder="School website" value={form.website} onChange={ff('website')} />
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field placeholder="Email" type="email" value={form.email} onChange={ff('email')} />
           <Field placeholder="Phone" value={form.phone} onChange={ff('phone')} />
         </div>
         {/* Row 3 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field placeholder="Street" value={form.street} onChange={ff('street')} />
           <Field placeholder="Postcode" value={form.postcode} onChange={ff('postcode')} />
         </div>
         {/* Row 4 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field placeholder="City" value={form.city} onChange={ff('city')} />
           <div /> {/* empty */}
         </div>
@@ -115,7 +115,7 @@ export default function CreateSchoolPage() {
         {/* Contact person */}
         <Field placeholder="Contact person" value={form.contactPerson} onChange={ff('contactPerson')} className="w-1/2" />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field placeholder="Phone (Contact person)" value={form.contactPhone} onChange={ff('contactPhone')} />
           <Field placeholder="Email (Contact person)" type="email" value={form.contactEmail} onChange={ff('contactEmail')} />
         </div>

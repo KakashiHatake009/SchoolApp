@@ -258,6 +258,14 @@ export const publishEvent = async (req, res) => {
             if (slotsToCreate.length > 0) {
                 await prisma.slot.createMany({ data: slotsToCreate });
             }
+
+            // Update unconfirmed teachers to slots_confirmed
+            if (teacher.bookingStatus === 'not_booked') {
+                await prisma.teacher.update({
+                    where: { id: teacher.id },
+                    data: { bookingStatus: 'slots_confirmed' },
+                });
+            }
         }
 
         const event = await prisma.event.update({

@@ -190,12 +190,12 @@ export default function CancelPage() {
         >›</button>
       </div>
 
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
         {/* Calendar grid */}
-        <div className="flex-1 rounded overflow-hidden">
+        <div className="flex-1 w-full rounded overflow-hidden">
           <div
             className="grid bg-[#dde8ee] rounded-t justify-center"
-            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           >
             {weekDates.map((date) => {
               const d = new Date(date)
@@ -211,7 +211,7 @@ export default function CancelPage() {
 
           <div
             className="grid overflow-y-auto max-h-96 justify-center items-start"
-            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 120px))` }}
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           >
             {weekDates.map((date) => (
               <div key={date} className="flex flex-col items-center">
@@ -224,7 +224,7 @@ export default function CancelPage() {
                   const labelColor = (v: boolean | null | undefined) =>
                     v === false ? 'text-red-500' : 'text-green-600'
                   return (
-                    <div key={slot.id} className="py-1 px-1 flex flex-col items-center gap-0.5">
+                    <div key={slot.id} className="py-1.5 px-1 flex flex-col items-center gap-0.5">
                       <button
                         disabled={isUnavailable}
                         onClick={() => !isUnavailable && setSelectedSlot(isSelected ? null : slot)}
@@ -270,7 +270,7 @@ export default function CancelPage() {
         </div>
 
         {/* Legend — side panel */}
-        <div className="w-48 shrink-0 text-xs border border-gray-200 rounded-lg p-3 space-y-3">
+        <div className="hidden sm:block w-48 shrink-0 text-xs border border-gray-200 rounded-lg p-3 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Legende</p>
 
           <div>
@@ -316,7 +316,7 @@ export default function CancelPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
-        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain" />
+        <img src="/logo.png" alt="WahlWeise" className="h-8 w-auto object-contain shrink-0" />
         <span className="text-base text-gray-500">Termin verwalten</span>
         <span className="text-sm text-gray-400" />
       </header>

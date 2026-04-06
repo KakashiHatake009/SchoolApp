@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { sendBookingConfirmation, sendCancellationEmail } from '../services/email.service.js';
+import { broadcastSlotUpdate } from './public.controller.js';
 
 // ── POST /api/bookings ───────────────────────────────────────────────────────
 // Public — parent provides email in request body
@@ -80,6 +81,7 @@ export const createBooking = async (req, res) => {
                     slotTime,
                     teacherName,
                     roomNo,
+                    note: booking.note,
                     cancelToken: booking.cancelToken,
                     appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3001',
                 });
@@ -87,6 +89,12 @@ export const createBooking = async (req, res) => {
                 console.error('Booking email failed:', e.message);
             }
         })();
+
+        // Broadcast new booking via SSE
+        if (booking.slotId) {
+            const bookedSlot = await prisma.slot.findUnique({ where: { id: booking.slotId } });
+            if (bookedSlot) broadcastSlotUpdate(booking.eventId, bookedSlot);
+        }
 
         res.status(201).json(booking);
     } catch (err) {
@@ -165,6 +173,14 @@ export const rescheduleBooking = async (req, res) => {
                 data: { slotId },
             });
         });
+
+        // Broadcast slot changes via SSE
+        if (booking.slotId && booking.slotId !== slotId) {
+            const oldSlot = await prisma.slot.findUnique({ where: { id: booking.slotId } });
+            if (oldSlot) broadcastSlotUpdate(booking.eventId, oldSlot);
+        }
+        const newSlotUpdated = await prisma.slot.findUnique({ where: { id: slotId } });
+        if (newSlotUpdated) broadcastSlotUpdate(booking.eventId, newSlotUpdated);
 
         // Fire-and-forget reschedule confirmation email
         (async () => {
@@ -250,6 +266,12 @@ export const cancelBooking = async (req, res) => {
         sendCancellationEmail(booking.parentEmail, {
             eventTitle: booking.event.name,
         }).catch((e) => console.error('Cancellation email failed:', e.message));
+
+        // Broadcast freed slot via SSE
+        if (booking.slotId) {
+            const freedSlot = await prisma.slot.findUnique({ where: { id: booking.slotId } });
+            if (freedSlot) broadcastSlotUpdate(booking.eventId, freedSlot);
+        }
 
         res.json({ message: 'Booking cancelled' });
     } catch (err) {
