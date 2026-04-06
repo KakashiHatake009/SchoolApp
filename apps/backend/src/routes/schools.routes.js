@@ -11,8 +11,8 @@ import {
 const router = Router();
 
 // platform_admin sees all schools; school_admin sees only their own
-router.get('/', requireRole('platform_admin', 'school_admin'), getSchools);
-router.get('/:id', requireRole('platform_admin', 'school_admin'), getSchoolById);
+router.get('/', requireRole('school_admin'), getSchools);
+router.get('/:id', requireRole('school_admin'), getSchoolById);
 
 // Only platform_admin can create, update, delete
 router.post('/', requirePlatformAdmin, createSchool);

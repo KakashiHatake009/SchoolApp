@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -7,45 +8,86 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Auth users (platform_admin, school_admin, teacher) ─────────────────────
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  role      String   // PLATFORM_ADMIN | SCHOOL_ADMIN | TEACHER
   name      String
+  role      String   // 'platform_admin' | 'school_admin' | 'teacher'
   schoolId  String?
-  teacherId String?
-  createdAt DateTime @default(now())
+  teacherId    String?
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
 }
 
+// ── School ──────────────────────────────────────────────────────────────────
 model School {
   id                 String   @id @default(cuid())
   name               String
   description        String?
-  website            String?
-  phone              String?
-  email              String?
-  street             String?
-  postcode           String?
-  city               String?
-  contactPerson      String?
-  contactPhone       String?
-  contactEmail       String
-  subscriptionStatus String   @default("trial") // active | inactive | trial
-  isActive           Boolean  @default(true)
+  website            String   @default("")
+  phone              String   @default("")
+  email              String   @default("")
+  street             String   @default("")
+  postcode           String   @default("")
+  city               String   @default("")
+  contactPerson      String   @default("")
+  contactPhone       String   @default("")
+  contactEmail       String   @default("")
+  logo               String?
+  subscriptionStatus String   @default("trial")
   createdAt          DateTime @default(now())
 
-  teachers Teacher[]
-  events   Event[]
+  events Event[]
 }
 
+// ── Event ───────────────────────────────────────────────────────────────────
+model Event {
+  id             String   @id @default(cuid())
+  schoolId       String
+  name           String
+  description    String?
+  type           String   @default("slot_booking")
+  date           String   // 'YYYY-MM-DD' — kept for backward compat / fallback
+  startTime      String   // 'HH:mm'
+  endTime        String   // 'HH:mm'
+  sessionLength  Int      @default(15)
+  breakLength    Int      @default(5)
+  status         String   @default("draft")
+  bookingActive  Boolean  @default(false)
+  qrCode         String?
+  qrToken        String   @unique @default(cuid())
+  link           String?
+  duplicatedFrom String?
+  createdAt      DateTime @default(now())
+
+  school   School     @relation(fields: [schoolId], references: [id])
+  days     EventDay[]
+  teachers Teacher[]
+  slots    Slot[]
+  bookings Booking[]
+}
+
+// ── Event Days (individual dates for a multi-day event) ──────────────────────
+model EventDay {
+  id        String @id @default(cuid())
+  eventId   String
+  date      String // 'YYYY-MM-DD'
+  startTime String // 'HH:mm'
+  endTime   String // 'HH:mm'
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ── Teacher (per-event) ─────────────────────────────────────────────────────
 model Teacher {
   id            String   @id @default(cuid())
   schoolId      String
   eventId       String
   klasse        String?
   roomNo        String?
-  salutation    String   @default("Hr.")
+  salutation    String   // 'Hr.' | 'Fr.'
   titel         String?
   firstName     String
   surname       String
@@ -55,61 +97,41 @@ model Teacher {
   firstName2    String?
   surname2      String?
   email2        String?
-  bookingStatus String   @default("not_booked")
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  bookingStatus      String    @default("not_booked")
+  isActive           Boolean   @default(true)
+  accessCode         String?
+  accessCodeExpires  DateTime?
+  accessCode2        String?
+  accessCode2Expires DateTime?
+  teacher1Confirmed  Boolean   @default(false)
+  teacher2Confirmed  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
 
-  school School @relation(fields: [schoolId], references: [id])
-  event  Event  @relation(fields: [eventId], references: [id])
-  slots  Slot[]
+  event Event  @relation(fields: [eventId], references: [id])
+  slots Slot[]
 }
 
-model Event {
-  id            String   @id @default(cuid())
-  schoolId      String
-  name          String
-  description   String?
-  type          String   @default("SLOT_BOOKING") // SLOT_BOOKING | RSVP_SIGNUP
-  date          String   // e.g. "2025-11-15"
-  startTime     String   // e.g. "08:00"
-  endTime       String   // e.g. "16:00"
-  sessionLength Int      @default(10) // minutes per session
-  breakLength   Int      @default(5)  // break between sessions in minutes
-  location      String?
-  maxCapacity   Int?
-  qrCodeUrl     String?
-  qrToken       String   @unique @default(cuid())
-  bookingActive Boolean  @default(false)
-  status        String   @default("draft") // draft | published
-  isActive      Boolean  @default(true)
-  createdBy     String?
-  createdAt     DateTime @default(now())
-
-  school   School    @relation(fields: [schoolId], references: [id])
-  slots    Slot[]
-  bookings Booking[]
-  teachers Teacher[]
-}
-
+// ── Appointment Slot ────────────────────────────────────────────────────────
 model Slot {
-  id              String   @id @default(cuid())
-  eventId         String
-  teacherId       String?
-  date            String   // e.g. "2025-11-15"
-  time            String   // e.g. "08:00"
-  maxBookings     Int      @default(1)
-  currentBookings Int      @default(0)
-  isActive        Boolean  @default(true)
+  id               String  @id @default(cuid())
+  teacherId        String
+  eventId          String
+  time             String  // 'HH:mm'
+  date             String  // 'YYYY-MM-DD'
+  status           String  @default("available") // 'available' | 'booked' | 'disabled'
+  teacher1Present  Boolean?
+  teacher2Present  Boolean?
 
-  event    Event    @relation(fields: [eventId], references: [id])
-  teacher  Teacher? @relation(fields: [teacherId], references: [id])
+  teacher  Teacher   @relation(fields: [teacherId], references: [id])
+  event    Event     @relation(fields: [eventId], references: [id])
   bookings Booking[]
 }
 
+// ── Booking ─────────────────────────────────────────────────────────────────
 model Booking {
-  id                     String    @id @default(cuid())
-  eventId                String
+  id                     String   @id @default(cuid())
   slotId                 String?
+  eventId                String
   salutation             String?
   parentFirstName        String?
   parentSurname          String
@@ -117,15 +139,14 @@ model Booking {
   phone                  String?
   childName              String?
   childClass             String?
-  numberOfPersons        Int       @default(1)
-  note                   String?
+  numberOfPersons        Int      @default(1)
   secondPersonSalutation String?
   secondPersonFirstName  String?
   secondPersonSurname    String?
-  status                 String    @default("CONFIRMED") // CONFIRMED | CANCELLED
-  cancelToken            String    @unique @default(uuid())
-  bookedAt               DateTime  @default(now())
-  modifiedAt             DateTime?
+  note                   String?
+  status                 String   @default("confirmed")
+  cancelToken            String   @unique @default(uuid())
+  bookedAt               DateTime @default(now())
 
   event Event  @relation(fields: [eventId], references: [id])
   slot  Slot?  @relation(fields: [slotId], references: [id])

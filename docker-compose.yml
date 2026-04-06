@@ -40,32 +40,6 @@ services:
     networks:
       - schoolapp_net
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.5
-    container_name: schoolapp_keycloak
-    restart: unless-stopped
-    command: start-dev --import-realm
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_dev
-      KC_DB_USERNAME: schoolapp
-      KC_DB_PASSWORD: localpassword
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: localhost
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_LOG_LEVEL: WARN
-    ports:
-      - "8081:8080"
-    volumes:
-      - ./devops/keycloak:/opt/keycloak/data/import
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - schoolapp_net
-
 volumes:
   postgres_data:
 

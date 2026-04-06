@@ -4,9 +4,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
-ARG VITE_KC_URL
-ARG VITE_KC_REALM
-ARG VITE_KC_CLIENT_ID
+ARG VITE_API_URL
 RUN npm run build
 
 # ---------- serve ----------

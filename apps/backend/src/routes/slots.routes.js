@@ -1,17 +1,23 @@
 import { Router } from 'express';
 import { requireRole } from '../middleware/auth.js';
-import { getSlots, createSlots, updateSlot, deleteSlot, getSlotsByTeacher } from '../controllers/slots.controller.js';
+import {
+    getSlots,
+    getSlotsByTeacher,
+    createSlots,
+    updateSlot,
+    deleteSlot,
+} from '../controllers/slots.controller.js';
 
-// Mounted at /api/events/:eventId/slots
 const router = Router({ mergeParams: true });
 
-router.get('/', requireRole('platform_admin', 'school_admin', 'teacher'), getSlots);
-router.post('/', requireRole('platform_admin', 'school_admin'), createSlots);
+// Mounted at /api/events/:eventId/slots — public GET (parents need to see slots)
+router.get('/', getSlots);
+router.post('/', requireRole('school_admin'), createSlots);
 
 export default router;
 
-// Flat router for /api/slots
+// Separate flat router for /api/slots/:id and /api/slots?teacherId=X
 export const slotsFlat = Router();
-slotsFlat.get('/', requireRole('platform_admin', 'school_admin', 'teacher'), getSlotsByTeacher);
-slotsFlat.patch('/:id', requireRole('platform_admin', 'school_admin'), updateSlot);
-slotsFlat.delete('/:id', requireRole('platform_admin', 'school_admin'), deleteSlot);
+slotsFlat.get('/', requireRole('school_admin', 'teacher'), getSlotsByTeacher);
+slotsFlat.patch('/:id', requireRole('school_admin', 'teacher'), updateSlot);
+slotsFlat.delete('/:id', requireRole('school_admin'), deleteSlot);

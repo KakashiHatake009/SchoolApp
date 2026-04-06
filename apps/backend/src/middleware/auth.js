@@ -1,15 +1,29 @@
 import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '../lib/tokens.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+// ── Extract user object from JWT payload ────────────────────────────────────
+function extractUser(payload) {
+    return {
+        id: payload.id,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role,
+        schoolId: payload.schoolId ?? null,
+        teacherId: payload.teacherId ?? null,
+        isPlatformAdmin: payload.role === 'platform_admin',
+    };
+}
 
-// ── Extract and verify JWT from Authorization header ────────────────────────
+// ── requireAuth ─────────────────────────────────────────────────────────────
+// Validates the Bearer JWT issued at login.
 export const requireAuth = (req, res, next) => {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        req.user = jwt.verify(auth.slice(7), JWT_SECRET);
+        const payload = verifyAccessToken(auth.slice(7));
+        req.user = extractUser(payload);
         next();
     } catch {
         res.status(401).json({ error: 'Invalid or expired token' });
@@ -17,12 +31,12 @@ export const requireAuth = (req, res, next) => {
 };
 
 // ── requireRole ─────────────────────────────────────────────────────────────
-// Usage: requireRole('SCHOOL_ADMIN')  or  requireRole('SCHOOL_ADMIN', 'TEACHER')
-// platform_admin bypasses all role checks automatically
+// Usage: requireRole('school_admin')  or  requireRole('school_admin', 'teacher')
+// platform_admin bypasses all role checks automatically.
 export const requireRole = (...roles) => [
     requireAuth,
     (req, res, next) => {
-        if (req.user.role === 'platform_admin') return next();
+        if (req.user.isPlatformAdmin) return next();
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
@@ -34,7 +48,7 @@ export const requireRole = (...roles) => [
 export const requirePlatformAdmin = [
     requireAuth,
     (req, res, next) => {
-        if (req.user.role !== 'platform_admin') {
+        if (!req.user.isPlatformAdmin) {
             return res.status(403).json({ error: 'Platform admin access required' });
         }
         next();

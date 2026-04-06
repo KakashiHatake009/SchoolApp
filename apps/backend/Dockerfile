@@ -14,6 +14,7 @@ RUN npx prisma generate
 
 # ---------- runner ----------
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
@@ -23,4 +24,4 @@ COPY prisma ./prisma
 COPY src ./src
 COPY package.json ./
 EXPOSE 3000
-CMD ["node", "src/app.js"]
+CMD sh -c "npx prisma migrate deploy && node src/seed.js && node src/app.js"

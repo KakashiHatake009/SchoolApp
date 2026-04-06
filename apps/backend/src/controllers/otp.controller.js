@@ -13,12 +13,13 @@ export const sendOtp = async (req, res) => {
             return res.status(400).json({ error: 'email and either eventId or qrToken are required' });
         }
 
-        const where = eventId ? { id: eventId, isActive: true } : { qrToken, isActive: true };
-        const event = await prisma.event.findUnique({ where });
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+        });
 
         if (!event) return res.status(404).json({ error: 'Event not found' });
 
-        const code = await generateOtp(email, event.id);
+        const code = await generateOtp(email, eventId);
         await sendOtpEmail(email, code, event.name);
 
         res.json({ message: 'OTP sent', eventId: event.id });
@@ -46,7 +47,13 @@ export const verifyOtpHandler = async (req, res) => {
             { expiresIn: process.env.OTP_JWT_EXPIRES_IN ?? '30m' }
         );
 
-        res.json({ token });
+        // Check if parent already has a confirmed booking for this event
+        const existing = await prisma.booking.findFirst({
+            where: { eventId, parentEmail: email, status: 'confirmed' },
+            select: { cancelToken: true },
+        });
+
+        res.json({ token, existingCancelToken: existing?.cancelToken ?? null });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
