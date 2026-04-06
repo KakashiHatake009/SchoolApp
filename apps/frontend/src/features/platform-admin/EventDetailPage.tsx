@@ -222,8 +222,11 @@ export default function EventDetailPage() {
       <title>${event.name} – Booking QR</title>
       <style>
         body{font-family:Arial,sans-serif;padding:48px;max-width:560px;margin:0 auto;color:#1a1a1a}
-        h1{font-size:20px;margin-bottom:4px}
-        .sub{font-size:13px;color:#555;margin-bottom:24px}
+        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+        .header-left{flex:1}
+        .school-logo{width:64px;height:64px;border-radius:50%;object-fit:contain;border:1px solid #ddd;flex-shrink:0}
+        h1{font-size:20px;margin:0 0 4px}
+        .sub{font-size:13px;color:#555;margin:0}
         .row{font-size:13px;margin-bottom:6px}
         .label{font-weight:600}
         .qr{margin:24px 0;text-align:center}
@@ -232,14 +235,19 @@ export default function EventDetailPage() {
         @media print{body{padding:24px}}
       </style>
     </head><body>
-      <h1>${event.name}</h1>
-      <div class="sub">${schoolName}</div>
+      <div class="header">
+        <div class="header-left">
+          <h1>${event.name}</h1>
+          <div class="sub">${schoolName}</div>
+        </div>
+        ${school?.logo ? `<img src="${school.logo}" class="school-logo" />` : ''}
+      </div>
       ${event.days && event.days.length > 0
         ? event.days.map((d) => `<div class="row"><span class="label">Date:</span> ${d.date} &nbsp; ${d.startTime} – ${d.endTime}</div>`).join('')
         : `<div class="row"><span class="label">Date:</span> ${event.date} &nbsp; ${event.startTime} – ${event.endTime}</div>`
       }
       <div class="row"><span class="label">Session:</span> ${event.sessionLength} min &nbsp;|&nbsp; <span class="label">Break:</span> ${event.breakLength} min</div>
-      ${event.description ? `<div class="row"><span class="label">Info:</span> ${event.description}</div>` : ''}
+      ${event.description ? `<div class="row"><span class="label">Info:</span><br/><span style="white-space:pre-line">${event.description}</span></div>` : ''}
       <div class="qr">
         ${qrDataUrl ? `<img src="${qrDataUrl}" />` : '<p>QR code not available</p>'}
         <div class="link">${bookingLink}</div>
@@ -389,7 +397,7 @@ export default function EventDetailPage() {
             {schoolName}: Event "{event.name}"
           </p>
           {event.description && (
-            <p className="text-sm text-gray-600 mb-3 leading-relaxed">{event.description}</p>
+            <p className="text-sm text-gray-600 mb-3 leading-relaxed whitespace-pre-line">{event.description}</p>
           )}
           <div className="text-sm text-gray-700 mb-4 space-y-1">
             <div>

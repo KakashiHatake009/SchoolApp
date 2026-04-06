@@ -140,13 +140,16 @@ export default function EditEventPage() {
     <div className="max-w-2xl">
       <div className="space-y-3">
         <Field placeholder="Event title" value={form.name} onChange={ff('name')} />
-        <textarea
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => ff('description')(e.target.value)}
-          rows={4}
-          className="border border-[gray-300] rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] w-full"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+          <textarea
+            placeholder="Enter event description..."
+            value={form.description}
+            onChange={(e) => ff('description')(e.target.value)}
+            rows={8}
+            className="border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] focus:ring-1 focus:ring-[#1565c0] w-full leading-relaxed resize-y"
+          />
+        </div>
 
         {/* Days */}
         <div>

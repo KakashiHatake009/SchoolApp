@@ -66,7 +66,7 @@ function PageShell({
                 <span className="font-normal">{eventName}</span>
               </p>
               {description && (
-                <p className="text-sm text-gray-600 leading-relaxed mt-2 max-w-2xl">{description}</p>
+                <p className="text-sm text-gray-600 leading-relaxed mt-2 max-w-2xl whitespace-pre-line">{description}</p>
               )}
             </div>
             {schoolLogo ? (
@@ -160,7 +160,7 @@ export default function BookingPage() {
   })
 
   // Load event + school via public endpoint
-  const { data: event } = useQuery({
+  const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['public-event', eventId],
     queryFn: () => publicFetch<PublicEvent>(`/public/events/${eventId}`),
     enabled: !!eventId,
@@ -204,8 +204,17 @@ export default function BookingPage() {
     })
   }
 
+  // ── Loading: wait for event data before rendering anything ──────────────
+  if (eventLoading || !event) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-sm text-gray-400">Laden…</p>
+      </div>
+    )
+  }
+
   // ── Guard: event not published yet ───────────────────────────────────────
-  if (event && (!event.bookingActive || event.status !== 'published')) {
+  if (!event.bookingActive || event.status !== 'published') {
     return (
       <PageShell navTitle="Terminbuchung" schoolName={schoolName} eventName={eventName} schoolLogo={schoolLogo}>
         <div className="flex justify-center mt-8">
@@ -243,7 +252,7 @@ export default function BookingPage() {
     return (
       <PageShell navTitle="Terminbuchung" schoolName={schoolName} eventName={eventName} schoolLogo={schoolLogo}>
         {description && (
-          <p className="text-sm text-gray-600 leading-relaxed mb-6 max-w-2xl">{description}</p>
+          <p className="text-sm text-gray-600 leading-relaxed mb-6 max-w-2xl whitespace-pre-line">{description}</p>
         )}
 
         <div className="flex justify-center mt-4">

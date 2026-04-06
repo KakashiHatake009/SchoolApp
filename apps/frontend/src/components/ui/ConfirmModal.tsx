@@ -36,7 +36,7 @@ export function ConfirmModal({
     <Modal open={open} onClose={handleClose} title={title}>
       <p className="text-sm text-gray-600 text-center mb-4">{message}</p>
       {requireCheckbox && (
-        <label className="flex items-center gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
+        <label className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
           <input
             type="checkbox"
             checked={checked}

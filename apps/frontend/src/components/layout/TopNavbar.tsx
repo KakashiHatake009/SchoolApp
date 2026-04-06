@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, NavLink } from 'react-router-dom'
 import { Menu, X, CalendarDays, LayoutDashboard, Users, School, BookOpen, LogOut } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -28,8 +28,24 @@ export function TopNavbar({ title, showLanguage = false }: TopNavbarProps) {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem('user-avatar') ?? '')
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const url = reader.result as string
+      setAvatarUrl(url)
+      localStorage.setItem('user-avatar', url)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   const navItems = navByRole[user?.role ?? ''] ?? []
+  const displayAvatar = user?.avatar || avatarUrl
 
   return (
     <>
@@ -50,14 +66,19 @@ export function TopNavbar({ title, showLanguage = false }: TopNavbarProps) {
 
         {/* Right: avatar or language */}
         <div className="flex items-center gap-3">
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           {showLanguage ? (
             <span className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">Language</span>
-          ) : user?.avatar ? (
-            <img src={user.avatar} alt={user.name} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover" />
           ) : (
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-600">
-              {user?.name?.charAt(0) ?? 'A'}
-            </div>
+            <button onClick={() => avatarInputRef.current?.click()} className="cursor-pointer rounded-full hover:ring-2 hover:ring-[#1565c0]/30 transition-all" title="Change profile photo">
+              {displayAvatar ? (
+                <img src={displayAvatar} alt={user?.name ?? ''} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-600">
+                  {user?.name?.charAt(0) ?? 'A'}
+                </div>
+              )}
+            </button>
           )}
         </div>
       </header>

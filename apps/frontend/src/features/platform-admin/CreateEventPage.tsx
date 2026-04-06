@@ -342,7 +342,16 @@ export default function CreateEventPage() {
 
       <div className="space-y-3">
         <FInput placeholder="Event title" value={form.name} onChange={ff('name')} className="w-full max-w-72" />
-        <FInput placeholder="Description" value={form.description} onChange={ff('description')} textarea />
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+          <textarea
+            placeholder="Enter event description..."
+            value={form.description}
+            onChange={(e) => ff('description')(e.target.value)}
+            rows={8}
+            className="border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1565c0] focus:ring-1 focus:ring-[#1565c0] w-full leading-relaxed resize-y"
+          />
+        </div>
 
         {/* Timeframes */}
         <Button
