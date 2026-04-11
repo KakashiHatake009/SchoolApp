@@ -1,0 +1,430 @@
+# =============================================================================
+# HOW TO USE
+# 1. Install VS Code extension: "REST Client" by Huachao Mao
+# 2. Click "Send Request" above each ### to run it
+# 3. Follow the steps in order — each step tells you what to copy & paste
+# =============================================================================
+
+@host   = http://localhost:3000
+@kc     = http://localhost:8081/realms/school_001/protocol/openid-connect/token
+
+# ─── Paste values here as you go through the steps ──────────────────────────
+@token        = PASTE_ACCESS_TOKEN_HERE
+@schoolId     = PASTE_SCHOOL_ID_HERE
+@teacherId    = PASTE_TEACHER_ID_HERE
+@eventId      = PASTE_EVENT_ID_HERE
+@qrToken      = PASTE_QR_TOKEN_HERE
+@slotId       = PASTE_SLOT_ID_HERE
+@otpCode      = PASTE_OTP_CODE_FROM_MAILHOG_HERE
+@parentToken  = PASTE_PARENT_TOKEN_HERE
+@cancelToken  = PASTE_CANCEL_TOKEN_HERE
+
+
+# =============================================================================
+# STEP 0 — Check the API is running
+# Expected: { "status": "ok" }
+# =============================================================================
+
+### 0. Health check
+GET {{host}}/health
+
+
+# =============================================================================
+# STEP 1 — Get an admin token from Keycloak
+# Run ONE of the two requests below.
+# From the response JSON, copy the value of "access_token"
+# Paste it into @token at the top of this file.
+# =============================================================================
+
+### 1a. Login as platform_admin (manages all schools)
+POST {{kc}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=school-portal&username=platform_admin&password=x
+
+###
+
+### 1b. Login as school_admin_1 (manages one school)
+POST {{kc}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=school-portal&username=school_admin_1&password=Admin1234!
+
+###
+
+### 1c. Login as teacher_1 (read-only)
+POST {{kc}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=school-portal&username=teacher_1&password=Teacher1234!
+
+
+# =============================================================================
+# STEP 2 — Schools  (platform_admin token required for write)
+# =============================================================================
+
+### 2a. List all schools
+GET {{host}}/api/schools
+Authorization: Bearer {{token}}
+
+###
+
+### 2b. Create a school
+# After running: copy "id" from response → paste into @schoolId above
+POST {{host}}/api/schools
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Riverside Primary",
+  "address": "12 River Rd, Springfield",
+  "contactEmail": "admin@riverside.edu"
+}
+
+###
+
+### 2c. Get one school by ID
+GET {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 2d. Update school name
+PATCH {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Riverside Primary School"
+}
+
+###
+
+### 2e. Deactivate school
+PATCH {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+###
+
+### 2f. Reactivate school
+PATCH {{host}}/api/schools/{{schoolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+###
+
+### 2g. Delete school (careful — permanent)
+# DELETE {{host}}/api/schools/{{schoolId}}
+# Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 3 — Teachers  (school_admin token required)
+# =============================================================================
+
+### 3a. List all teachers
+GET {{host}}/api/teachers
+Authorization: Bearer {{token}}
+
+###
+
+### 3b. Create a teacher
+# After running: copy "id" from response → paste into @teacherId above
+# Response also includes "tempPassword" — give this to the teacher to first login
+POST {{host}}/api/teachers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Jane Smith",
+  "email": "jane.smith@riverside.edu",
+  "subject": "Mathematics",
+  "schoolId": "{{schoolId}}"
+}
+
+###
+
+### 3c. Get one teacher by ID
+GET {{host}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 3d. Update teacher
+PATCH {{host}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Jane A. Smith",
+  "subject": "Maths & Physics"
+}
+
+###
+
+### 3e. Delete teacher (also removes their Keycloak account)
+# DELETE {{host}}/api/teachers/{{teacherId}}
+# Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 4 — Events  (school_admin token required)
+# =============================================================================
+
+### 4a. List all events
+GET {{host}}/api/events
+Authorization: Bearer {{token}}
+
+###
+
+### 4b. Create a SLOT_BOOKING event (parent-teacher conferences)
+# After running: copy "id" → @eventId, copy "qrToken" → @qrToken
+POST {{host}}/api/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Parent-Teacher Conferences — Spring 2026",
+  "description": "Spring term parent-teacher meetings",
+  "eventType": "SLOT_BOOKING",
+  "startDate": "2026-03-20T09:00:00.000Z",
+  "endDate": "2026-03-20T16:00:00.000Z",
+  "location": "Main Hall",
+  "schoolId": "{{schoolId}}"
+}
+
+###
+
+### 4c. Create an RSVP_SIGNUP event (open day, no time slots needed)
+POST {{host}}/api/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Open Day 2026",
+  "description": "Come see our school!",
+  "eventType": "RSVP_SIGNUP",
+  "startDate": "2026-04-01T10:00:00.000Z",
+  "endDate": "2026-04-01T14:00:00.000Z",
+  "location": "School Grounds",
+  "maxCapacity": 100,
+  "schoolId": "{{schoolId}}"
+}
+
+###
+
+### 4d. Get one event by ID (includes its slots)
+GET {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4e. Update event
+PATCH {{host}}/api/events/{{eventId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Parent-Teacher Conferences (Updated)",
+  "location": "Room 14"
+}
+
+###
+
+### 4f. Delete event
+# DELETE {{host}}/api/events/{{eventId}}
+# Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 5 — Slots  (school_admin token required)
+# Add time slots to a SLOT_BOOKING event
+# =============================================================================
+
+### 5a. List slots for an event
+GET {{host}}/api/events/{{eventId}}/slots
+Authorization: Bearer {{token}}
+
+###
+
+### 5b. Create multiple slots at once (bulk)
+# After running: copy one "id" from the response array → paste into @slotId above
+POST {{host}}/api/events/{{eventId}}/slots
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[
+  {
+    "startTime":  "2026-03-20T09:00:00.000Z",
+    "endTime":    "2026-03-20T09:15:00.000Z",
+    "teacherId":  "{{teacherId}}",
+    "maxBookings": 1
+  },
+  {
+    "startTime":  "2026-03-20T09:15:00.000Z",
+    "endTime":    "2026-03-20T09:30:00.000Z",
+    "teacherId":  "{{teacherId}}",
+    "maxBookings": 1
+  },
+  {
+    "startTime":  "2026-03-20T09:30:00.000Z",
+    "endTime":    "2026-03-20T09:45:00.000Z",
+    "teacherId":  "{{teacherId}}",
+    "maxBookings": 1
+  }
+]
+
+###
+
+### 5c. Create a single slot
+POST {{host}}/api/events/{{eventId}}/slots
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "startTime":  "2026-03-20T10:00:00.000Z",
+  "endTime":    "2026-03-20T10:15:00.000Z",
+  "teacherId":  "{{teacherId}}",
+  "maxBookings": 2
+}
+
+###
+
+### 5d. Update a slot (change time or max bookings)
+PATCH {{host}}/api/slots/{{slotId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maxBookings": 2
+}
+
+###
+
+### 5e. Delete a slot
+# DELETE {{host}}/api/slots/{{slotId}}
+# Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 6 — QR Code  (school_admin token required)
+# REST Client shows the QR image inline in the response panel.
+# The URL encoded in the QR is: APP_BASE_URL/book/{qrToken}
+# =============================================================================
+
+### 6. Get QR code PNG for event
+GET {{host}}/api/events/{{eventId}}/qr
+Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 7 — Public event info  (no token needed)
+# These are the same endpoints the parent booking page calls after scanning QR.
+# @qrToken comes from the event create response (step 4b)
+# =============================================================================
+
+### 7a. Get event info by QR token
+# Shows: title, description, eventType, dates, location
+GET {{host}}/api/public/events/by-qr/{{qrToken}}
+
+###
+
+### 7b. Get slots for that event (public)
+# Each slot shows: startTime, endTime, teacherName, available (true/false)
+GET {{host}}/api/public/events/by-qr/{{qrToken}}/slots
+
+
+# =============================================================================
+# STEP 8 — Parent OTP flow  (no token needed — parents have no login)
+# 8a sends a 6-digit code to the parent's email
+# Open Mailhog at http://localhost:8025 to read it
+# 8b verifies the code and returns a short-lived parentToken
+# =============================================================================
+
+### 8a. Send OTP to parent email
+# Check http://localhost:8025 after running this — email arrives in seconds
+POST {{host}}/api/otp/send
+Content-Type: application/json
+
+{
+  "email": "parent@example.com",
+  "eventId": "{{eventId}}"
+}
+
+###
+
+### 8b. Verify OTP — returns parentToken
+# After running: copy "token" from response → paste into @parentToken above
+POST {{host}}/api/otp/verify
+Content-Type: application/json
+
+{
+  "email": "parent@example.com",
+  "eventId": "{{eventId}}",
+  "code": "{{otpCode}}"
+}
+
+
+# =============================================================================
+# STEP 9 — Create a booking  (parentToken required)
+# =============================================================================
+
+### 9a. Book a slot (for SLOT_BOOKING events)
+# After running: copy "cancelToken" from response → paste into @cancelToken above
+POST {{host}}/api/bookings
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{
+  "slotId": "{{slotId}}",
+  "childName": "Alex Johnson"
+}
+
+###
+
+### 9b. RSVP signup (for RSVP_SIGNUP events — no slotId needed)
+POST {{host}}/api/bookings
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{
+  "childName": "Alex Johnson"
+}
+
+
+# =============================================================================
+# STEP 10 — Admin: view bookings  (school_admin or teacher token)
+# =============================================================================
+
+### 10a. List all bookings for the school
+GET {{host}}/api/bookings
+Authorization: Bearer {{token}}
+
+###
+
+### 10b. Filter bookings by event
+GET {{host}}/api/bookings?eventId={{eventId}}
+Authorization: Bearer {{token}}
+
+
+# =============================================================================
+# STEP 11 — Cancel a booking  (no token — link is emailed to parent)
+# @cancelToken comes from the booking create response (step 9)
+# =============================================================================
+
+### 11a. View booking details by cancel token
+GET {{host}}/api/bookings/{{cancelToken}}
+
+###
+
+### 11b. Cancel the booking
+DELETE {{host}}/api/bookings/{{cancelToken}}

@@ -1,0 +1,5 @@
+postgresql://neondb_owner:npg_t7kEbIduoKf6@ep-floral-star-ak2oe68i.c-3.us-west-2.aws.neon.tech/neondb?sslmode=require
+
+redis-cli --tls -u redis://default:gQAAAAAAATuVAAIncDFhM2VlNmJmYTgxYzQ0ZmYwOTYyZjNjNWNmNDMyMzBiN3AxODA3ODk@vast-llama-80789.upstash.io:6379
+
+re_DQP3vUE7_Q2yCBdb23wM1UzGSApy8T5iP
