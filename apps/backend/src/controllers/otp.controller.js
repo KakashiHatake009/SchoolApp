@@ -20,7 +20,10 @@ export const sendOtp = async (req, res) => {
         if (!event) return res.status(404).json({ error: 'Event not found' });
 
         const code = await generateOtp(email, eventId);
-        await sendOtpEmail(email, code, event.name);
+
+        // Fire-and-forget — don't block the response
+        sendOtpEmail(email, code, event.name)
+            .catch((e) => console.error('OTP email failed:', e.message));
 
         res.json({ message: 'OTP sent', eventId: event.id });
     } catch (err) {

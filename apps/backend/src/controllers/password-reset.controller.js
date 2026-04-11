@@ -14,7 +14,8 @@ export const requestReset = async (req, res) => {
         // Always return 200 to prevent email enumeration
         if (user) {
             const code = await generateResetOtp(email);
-            await sendPasswordResetEmail(email, code);
+            sendPasswordResetEmail(email, code)
+                .catch((e) => console.error('Password reset email failed:', e.message));
         }
 
         res.json({ ok: true, message: 'If the email exists, a reset code has been sent.' });
